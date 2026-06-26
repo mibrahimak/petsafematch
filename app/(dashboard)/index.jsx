@@ -1,0 +1,263 @@
+import React, {
+  useState,
+  useMemo,
+  act,
+  useCallback,
+  useEffect,
+  useRef,
+  useContext,
+} from 'react';
+import {
+  StyleSheet,
+  FlatList,
+  TextInput,
+  Pressable,
+  Text,
+  ScrollView,
+  Animated,
+} from 'react-native';
+import { useFavoriteStore } from '../../src/store/useFavoriteStore';
+import { ScrollContext } from '../../contexts/ScrollContext';
+import PetCard from '../../src/components/petCard';
+import ThemedView from '../../components/ThemedView';
+import { usePetStore } from '../../src/store/usePetStore';
+
+const CATEGORIES = ['Hepsi', 'Kedi', 'Köpek', 'Kuş', 'Diğer'];
+
+const normalizeText = (value) =>
+  (value || '')
+    .toLowerCase()
+    .replace(/ğ/g, 'g')
+    .replace(/ü/g, 'u')
+    .replace(/ş/g, 's')
+    .replace(/ı/g, 'i')
+    .replace(/ö/g, 'o')
+    .replace(/ç/g, 'c');
+
+const CategoryChip = React.memo(function CategoryChip({
+  label,
+  isActive,
+  onPress,
+}) {
+  return (
+    <Pressable
+      style={[styles.chip, isActive && styles.chipActive]}
+      onPress={onPress}
+    >
+      <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+        {label}
+      </Text>
+    </Pressable>
+  );
+});
+
+const HomeScreen = () => {
+  const [activeCategory, setActiveCategory] = useState('Hepsi');
+  const [searchQuery, setSearchQuery] = useState();
+  const favorites = useFavoriteStore((state) => state.favorites);
+  const toggleFavorite = useFavoriteStore((state) => state.toggleFavorite);
+  const pets = usePetStore((state) => state.pets);
+  const fetchPets = usePetStore((state) => state.fetchPets);
+  const loading = usePetStore((state) => state.loading);
+
+  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
+  const animatedHeight = useRef(new Animated.Value(1)).current;
+  const [scrollOffset, setScrollOffset] = useState(0);
+  const { setShouldHideTabBar } = useContext(ScrollContext);
+
+  useEffect(() => {
+    Animated.timing(animatedHeight, {
+      toValue: isHeaderVisible ? 1 : 0,
+      duration: 300,
+      useNativeDriver: false,
+    }).start();
+  }, [isHeaderVisible]);
+
+  useEffect(() => {
+    fetchPets();
+  }, []);
+
+  const displayData = useMemo(() => {
+    const normalizedSearch = normalizeText(searchQuery?.trim());
+    const sourceData =
+      activeCategory === 'Hepsi'
+        ? pets
+        : pets.filter((pet) => {
+            const type = normalizeText(pet.type || pet.species || '');
+            const normalizedCategory = normalizeText(activeCategory);
+            if (normalizedCategory === 'diğer') {
+              return !['Kedi', 'Köpek', 'Kuş'].includes(type);
+            }
+            return type === normalizedCategory;
+          });
+
+    if (!normalizedSearch) return sourceData;
+
+    return sourceData.filter((pet) => {
+      const searchable = normalizeText(
+        `${pet.name || ''} ${pet.species || ''} ${pet.type || ''} ${pet.description || ''}`
+      );
+      return searchable.includes(normalizedSearch);
+    });
+  }, [activeCategory, pets, searchQuery]);
+
+  const handleCategoryChange = useCallback(
+    (category) => setActiveCategory(category),
+    []
+  );
+
+  const handleFavoritePress = useCallback((petId) => {
+    setFavorites((prevFavorites) => {
+      if (prevFavorites.includes(petId)) {
+        return prevFavorites.filter((id) => id !== petId);
+      } else {
+        return [...prevFavorites, petId];
+      }
+    });
+  }, []);
+
+  const handleScroll = useCallback(
+    (event) => {
+      const currentOffset = event.nativeEvent.contentOffset.y;
+      const delta = Math.abs(currentOffset - scrollOffset);
+
+      // Çok küçük harekete tepki verme (bounce'u ignore et)
+      if (delta < 5) return;
+
+      const direction = currentOffset > scrollOffset ? 'down' : 'up';
+
+      if (direction === 'down' && isHeaderVisible && currentOffset > 50) {
+        setIsHeaderVisible(false);
+        setShouldHideTabBar(true); // ← Tab barı gizle
+      } else if (direction === 'up' && !isHeaderVisible && currentOffset < 50) {
+        setIsHeaderVisible(true);
+        setShouldHideTabBar(false); // ← Tab barı göster
+      }
+    },
+    [scrollOffset, isHeaderVisible]
+  );
+
+  return (
+    <ThemedView style={styles.container} safe={true}>
+      <Animated.View
+        style={[
+          {
+            opacity: animatedHeight,
+            height: animatedHeight.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 65],
+            }),
+          },
+        ]}
+      >
+        <ScrollView
+          horizontal
+          contentContainerStyle={styles.categoryContent}
+          showsHorizontalScrollIndicator={false}
+          alwaysBounceHorizontal={false}
+          style={{ flexGrow: 0, maxHeight: 65 }}
+        >
+          {CATEGORIES.map((category) => (
+            <CategoryChip
+              key={category}
+              label={category}
+              isActive={activeCategory === category}
+              onPress={() => handleCategoryChange(category)}
+            />
+          ))}
+        </ScrollView>
+      </Animated.View>
+      <Animated.View
+        style={[
+          {
+            opacity: animatedHeight,
+            maxHeight: animatedHeight.interpolate({
+              inputRange: [0, 1],
+              outputRange: [0, 60],
+            }),
+          },
+        ]}
+      >
+        <TextInput
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder='Irk, isim veya açıklama ara...'
+          placeholderTextColor='#9CA3AF'
+          style={styles.searchInput}
+        />
+      </Animated.View>
+
+      <FlatList
+        data={displayData}
+        renderItem={({ item }) => {
+          // Zustand'dan gelen dizide bu id var mı kontrol ediyoruz
+          const isCardFavorite = favorites.includes(item.id);
+
+          return (
+            <PetCard
+              pet={item}
+              isFavorite={isCardFavorite}
+              onFavoritePress={() => toggleFavorite(item.id)}
+              onPress={() => console.log(`${item.name} kartına basıldı`)}
+            />
+          );
+        }}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContainer}
+        showsVerticalScrollIndicator={false}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
+      />
+    </ThemedView>
+  );
+};
+
+export default HomeScreen;
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    width: '100%',
+  },
+  categoryContent: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    gap: 10,
+    alignItems: 'center',
+    height: 65,
+  },
+  chip: {
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: '#E5E7EB',
+    justifyContent: 'center',
+    height: 36,
+  },
+  chipActive: {
+    backgroundColor: '#2563EB',
+  },
+  chipText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#374151',
+  },
+  chipTextActive: {
+    color: '#FFFFFF',
+  },
+  searchInput: {
+    marginHorizontal: 16,
+    marginTop: 12,
+    marginBottom: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    borderColor: '#E5E7EB',
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    fontSize: 14,
+    color: '#111827',
+  },
+  listContainer: {
+    padding: 16,
+  },
+});

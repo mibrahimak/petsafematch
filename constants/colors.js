@@ -11,6 +11,7 @@ export const Colors = {
     iconColor: '#475569',
     iconColorFocused: '#38bdf8',
     uiBackground: '#1e293b',
+    borderColor: '#2F3336',
   },
 
   light: {
@@ -21,5 +22,6 @@ export const Colors = {
     iconColor: '#94a3b8',
     iconColorFocused: '#5046e5',
     uiBackground: '#ffffff',
+    borderColor: '#E1E8ED',
   },
 };

@@ -43,7 +43,14 @@ export default function ListingDetailScreen() {
 
   return (
     <>
-      <Stack.Screen options={{ title: pet.name, headerShown: true }} />
+      <Stack.Screen
+        options={{
+          title: pet.name,
+          headerShown: true,
+          headerBackTitle: ' ',
+          headerBackButtonDisplayMode: 'minimal',
+        }}
+      />
 
       <ScrollView
         style={styles.container}
@@ -144,7 +151,7 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   contactButton: {
-    marignTop: 20,
+    marginTop: 20,
     backgroundColor: '#2563EB',
     paddingVertical: 12,
     borderRadius: 10,

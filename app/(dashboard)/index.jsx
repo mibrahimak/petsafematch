@@ -21,6 +21,7 @@ import { ScrollContext } from '../../contexts/ScrollContext';
 import PetCard from '../../src/components/petCard';
 import ThemedView from '../../components/ThemedView';
 import { usePetStore } from '../../src/store/usePetStore';
+import { useRouter } from 'expo-router';
 
 const CATEGORIES = ['Hepsi', 'Kedi', 'Köpek', 'Kuş', 'Diğer'];
 
@@ -58,12 +59,12 @@ const HomeScreen = () => {
   const toggleFavorite = useFavoriteStore((state) => state.toggleFavorite);
   const pets = usePetStore((state) => state.pets);
   const fetchPets = usePetStore((state) => state.fetchPets);
-  const loading = usePetStore((state) => state.loading);
-
   const [isHeaderVisible, setIsHeaderVisible] = useState(true);
   const animatedHeight = useRef(new Animated.Value(1)).current;
   const [scrollOffset, setScrollOffset] = useState(0);
   const { setShouldHideTabBar } = useContext(ScrollContext);
+
+  const router = useRouter();
 
   useEffect(() => {
     Animated.timing(animatedHeight, {
@@ -138,7 +139,7 @@ const HomeScreen = () => {
   );
 
   return (
-    <ThemedView style={styles.container} safe={true}>
+    <ThemedView style={styles.container}>
       <Animated.View
         style={[
           {
@@ -198,7 +199,9 @@ const HomeScreen = () => {
               pet={item}
               isFavorite={isCardFavorite}
               onFavoritePress={() => toggleFavorite(item.id)}
-              onPress={() => console.log(`${item.name} kartına basıldı`)}
+              onPress={() =>
+                router.push({ pathname: '/ilan/[id]', params: { id: item.id } })
+              }
             />
           );
         }}

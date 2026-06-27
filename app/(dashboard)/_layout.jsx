@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 // Themed Components
 
 import ThemedText from '../../components/ThemedText';
+import CustomHeader from '../../components/CustomHeader';
 
 const DashboardLayout = () => {
   const { colors } = useTheme();
@@ -15,7 +16,10 @@ const DashboardLayout = () => {
   return (
     <Tabs
       screenOptions={{
-        headerShown: false,
+        headerShown: true,
+        headerStyle: { backgroundColor: colors.background },
+        header: () => <CustomHeader />,
+        headerTitle: '',
         tabBarStyle: {
           display: shouldHideTabBar ? 'none' : 'flex',
           backgroundColor: colors.navBackground,

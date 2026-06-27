@@ -41,10 +41,12 @@ const Favorites = () => {
             loop
             style={styles.emptyAnimation}
           />
-          <Text style={styles.title}>Favoriler</Text>
-          <Text style={styles.subtitle}>
+          <ThemedText style={styles.title} title={true}>
+            Favoriler
+          </ThemedText>
+          <ThemedText style={styles.subtitle}>
             Henüz favoriniz yok. Bir dost seçmeye ne dersiniz?
-          </Text>
+          </ThemedText>
         </>
       ) : (
         <FlatList
@@ -74,7 +76,6 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: '700',
   },
   subtitle: {
     marginTop: 8,

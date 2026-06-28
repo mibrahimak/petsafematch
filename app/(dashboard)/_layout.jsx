@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -30,6 +31,7 @@ const DashboardLayout = () => {
       <Tabs.Screen
         name='index'
         options={{
+          title: 'Keşfet',
           tabBarIcon: ({ focused }) => (
             <Ionicons
               size={24}
@@ -40,8 +42,9 @@ const DashboardLayout = () => {
         }}
       />
       <Tabs.Screen
-        name='ilanlarım'
+        name='mylistings'
         options={{
+          title: 'İlanlarım',
           tabBarIcon: ({ focused }) => (
             <Ionicons
               size={24}
@@ -54,6 +57,7 @@ const DashboardLayout = () => {
       <Tabs.Screen
         name='ilan-ver'
         options={{
+          title: 'İlan Ver',
           tabBarIcon: ({ focused }) => (
             <Ionicons
               size={24}
@@ -66,6 +70,7 @@ const DashboardLayout = () => {
       <Tabs.Screen
         name='favorites'
         options={{
+          title: 'Favoriler',
           tabBarIcon: ({ focused }) => (
             <Ionicons
               size={24}
@@ -78,6 +83,7 @@ const DashboardLayout = () => {
       <Tabs.Screen
         name='profile'
         options={{
+          title: 'Profil',
           tabBarIcon: ({ focused }) => (
             <Ionicons
               size={24}

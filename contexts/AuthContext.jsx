@@ -72,6 +72,17 @@ export const AuthProvider = ({ children }) => {
     if (error) throw error;
   }, []);
 
+  const updateProfile = useCallback(async (fullName) => {
+    const { data, error } = await supabase.auth.updateUser({
+      data: { full_name: fullName },
+    });
+
+    if (error) throw error;
+
+    setUser(data.user);
+    return data;
+  }, []);
+
   const value = useMemo(() => {
     return {
       isLoggedIn,
@@ -81,8 +92,9 @@ export const AuthProvider = ({ children }) => {
       login,
       register,
       logout,
+      updateProfile,
     };
-  }, [isLoggedIn, isLoading, user, login, register, logout]);
+  }, [isLoggedIn, isLoading, user, login, register, logout, updateProfile]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

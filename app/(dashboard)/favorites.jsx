@@ -33,6 +33,12 @@ const Favorites = () => {
     <ThemedView style={styles.container} safe={true}>
       {favorites.length === 0 ? (
         <>
+          <ThemedText style={styles.title} title={true}>
+            Favoriler
+          </ThemedText>
+          <ThemedText style={styles.subtitle}>
+            Henüz favoriniz yok. Bir dost seçmeye ne dersiniz?
+          </ThemedText>
           <LottieView
             source={{
               uri: 'https://assets7.lottiefiles.com/packages/lf20_jz2wa00k.json',
@@ -41,12 +47,6 @@ const Favorites = () => {
             loop
             style={styles.emptyAnimation}
           />
-          <ThemedText style={styles.title} title={true}>
-            Favoriler
-          </ThemedText>
-          <ThemedText style={styles.subtitle}>
-            Henüz favoriniz yok. Bir dost seçmeye ne dersiniz?
-          </ThemedText>
         </>
       ) : (
         <FlatList

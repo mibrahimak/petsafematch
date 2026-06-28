@@ -29,7 +29,7 @@ const Home = () => {
   // Splash sonrası loading animasyonu
   return (
     <ThemedView style={styles.container}>
-      <ActivityIndicator size="large" />
+      <ActivityIndicator size='large' />
     </ThemedView>
   );
 };

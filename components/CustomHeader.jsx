@@ -7,15 +7,24 @@ import {
   Text,
   View,
 } from 'react-native';
-import React from 'react';
+import React, { useContext } from 'react';
 import { useTheme } from '../hooks/useTheme';
-import ThemedView from './ThemedView';
+import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
-import ThemedText from './ThemedText';
 import AppLogo from './AppLogo';
+import ThemedView from './ThemedView';
+import ThemedText from './ThemedText';
+import { AuthContext } from '../contexts/AuthContext';
 
 const CustomHeader = () => {
+  const { profile } = useContext(AuthContext);
+
   const { colors } = useTheme();
+  const router = useRouter();
+
+  const avatarUrl =
+    profile?.avatar_url ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2B62E5&color=fff&size=150`;
 
   return (
     <ThemedView
@@ -23,10 +32,12 @@ const CustomHeader = () => {
       safe={true}
     >
       <View style={styles.topRow}>
-        <Pressable onPress={() => console.log('Profil tıklandı')}>
+        <Pressable onPress={() => router.push('/profile')}>
           <Image
             source={{
-              uri: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb',
+              uri: avatarUrl
+                ? avatarUrl
+                : `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2B62E5&color=fff&size=150`,
             }}
             style={styles.avatar}
           />
@@ -89,6 +100,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 10,
     elevation: 10,
+    pointerEvents: 'none',
   },
   actionIcons: {
     flexDirection: 'row',

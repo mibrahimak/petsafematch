@@ -12,7 +12,7 @@ import { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useTheme } from '../../hooks/useTheme'; // Tema renklerini yakalamak için
+import { useTheme } from '../../hooks/useTheme';
 
 // Themed Components
 import ThemedView from '../../components/ThemedView';
@@ -20,7 +20,8 @@ import ThemedText from '../../components/ThemedText';
 import ThemedButton from '../../components/ThemedButton';
 
 const Profile = () => {
-  const { logout, isLoggedIn, user, updateProfile } = useContext(AuthContext);
+  const { logout, isLoggedIn, profile, user, isLoading } =
+    useContext(AuthContext);
   const { colors } = useTheme();
   const router = useRouter();
 
@@ -28,19 +29,29 @@ const Profile = () => {
   const [nameInput, setNameInput] = useState('');
 
   useEffect(() => {
-    if (!isLoggedIn) {
+    if (!isLoading && !isLoggedIn) {
       router.replace('/(auth)/login');
     }
-  }, [isLoggedIn, router]);
+  }, [isLoggedIn, isLoading, router]);
 
-  const fullName =
-    user?.user_metadata?.full_name ||
-    user?.raw_user_meta_data?.full_name ||
-    'Kullanıcı Adı';
+  if (isLoading) {
+    return (
+      <ThemedView
+        style={[
+          styles.container,
+          { justifyContent: 'center', alignItems: 'center' },
+        ]}
+      >
+        <ThemedText>Yükleniyor...</ThemedText>
+      </ThemedView>
+    );
+  }
+
+  const fullName = profile?.full_name || 'Kullanıcı Adı';
   const email = user?.email || 'eposta@adresiniz.com';
 
   const avatarUrl =
-    user?.user_metadata?.avatar_url ||
+    profile?.avatar_url ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2B62E5&color=fff&size=150`;
 
   const handleEditPress = () => {

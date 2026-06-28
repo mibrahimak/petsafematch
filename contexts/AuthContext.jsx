@@ -12,38 +12,66 @@ export const AuthContext = createContext();
 export const AuthProvider = ({ children }) => {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [user, setUser] = useState(null); // Giriş yapan kullanıcı bilgilerini tutmak için.
+  const [user, setUser] = useState(null);
+  const [profile, setProfile] = useState(null);
+
+  const fetchProfile = async (userId) => {
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', userId)
+        .single();
+
+      if (error) {
+        console.warn('Profile fetch warning:', error.message);
+        setProfile(null);
+      } else {
+        setProfile(data);
+      }
+    } catch (err) {
+      console.error('Error fetching profile:', err);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const refreshProfile = async () => {
+    if (user?.id) {
+      await fetchProfile(user.id);
+    }
+  };
 
   useEffect(() => {
-    // Uygulama ilk açıldığında hafızada aktif oturum var mı kontrol et!
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setIsLoggedIn(true);
         setUser(session.user);
+        fetchProfile(session.user.id);
+      } else {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
-    // Canlı takip: Giriş/Çıkış işlemlerini anlık dinle!
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
         setIsLoggedIn(true);
         setUser(session.user);
+        fetchProfile(session.user.id);
       } else {
         setIsLoggedIn(false);
         setUser(null);
+        setProfile(null);
+        setIsLoading(false);
       }
-      setIsLoading(false);
     });
 
-    // Temizlik fonksiyonu (Memory Leak engellemek için)
     return () => subscription.unsubscribe();
   }, []);
 
   const register = useCallback(async (email, password, fullName) => {
-    // Kullanıcıyı sisteme kaydet
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
@@ -54,7 +82,6 @@ export const AuthProvider = ({ children }) => {
       },
     });
     if (error) throw error;
-
     return data;
   }, []);
 
@@ -80,6 +107,7 @@ export const AuthProvider = ({ children }) => {
     if (error) throw error;
 
     setUser(data.user);
+
     return data;
   }, []);
 
@@ -89,12 +117,23 @@ export const AuthProvider = ({ children }) => {
       setIsLoggedIn,
       isLoading,
       user,
+      profile,
+      refreshProfile,
       login,
       register,
       logout,
       updateProfile,
     };
-  }, [isLoggedIn, isLoading, user, login, register, logout, updateProfile]);
+  }, [
+    isLoggedIn,
+    isLoading,
+    user,
+    profile,
+    login,
+    register,
+    logout,
+    updateProfile,
+  ]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

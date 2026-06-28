@@ -22,6 +22,7 @@ const CustomHeader = () => {
   const { colors } = useTheme();
   const router = useRouter();
 
+  const fullName = profile?.full_name || 'Kullanıcı Adı';
   const avatarUrl =
     profile?.avatar_url ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2B62E5&color=fff&size=150`;

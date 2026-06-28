@@ -14,7 +14,6 @@ import {
   Pressable,
   Text,
   ScrollView,
-  Animated,
 } from 'react-native';
 import { useFavoriteStore } from '../../src/store/useFavoriteStore';
 import { ScrollContext } from '../../contexts/ScrollContext';
@@ -55,24 +54,13 @@ const CategoryChip = React.memo(function CategoryChip({
 const HomeScreen = () => {
   const [activeCategory, setActiveCategory] = useState('Hepsi');
   const [searchQuery, setSearchQuery] = useState();
+
   const favorites = useFavoriteStore((state) => state.favorites);
   const toggleFavorite = useFavoriteStore((state) => state.toggleFavorite);
   const pets = usePetStore((state) => state.pets);
   const fetchPets = usePetStore((state) => state.fetchPets);
-  const [isHeaderVisible, setIsHeaderVisible] = useState(true);
-  const animatedHeight = useRef(new Animated.Value(1)).current;
-  const [scrollOffset, setScrollOffset] = useState(0);
-  const { setShouldHideTabBar } = useContext(ScrollContext);
 
   const router = useRouter();
-
-  useEffect(() => {
-    Animated.timing(animatedHeight, {
-      toValue: isHeaderVisible ? 1 : 0,
-      duration: 300,
-      useNativeDriver: false,
-    }).start();
-  }, [isHeaderVisible]);
 
   useEffect(() => {
     fetchPets();
@@ -117,76 +105,32 @@ const HomeScreen = () => {
     });
   }, []);
 
-  const handleScroll = useCallback(
-    (event) => {
-      const currentOffset = event.nativeEvent.contentOffset.y;
-      const delta = Math.abs(currentOffset - scrollOffset);
-
-      // Çok küçük harekete tepki verme (bounce'u ignore et)
-      if (delta < 5) return;
-
-      const direction = currentOffset > scrollOffset ? 'down' : 'up';
-
-      if (direction === 'down' && isHeaderVisible && currentOffset > 50) {
-        setIsHeaderVisible(false);
-        setShouldHideTabBar(true); // ← Tab barı gizle
-      } else if (direction === 'up' && !isHeaderVisible && currentOffset < 50) {
-        setIsHeaderVisible(true);
-        setShouldHideTabBar(false); // ← Tab barı göster
-      }
-    },
-    [scrollOffset, isHeaderVisible]
-  );
-
   return (
     <ThemedView style={styles.container}>
-      <Animated.View
-        style={[
-          {
-            opacity: animatedHeight,
-            height: animatedHeight.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, 65],
-            }),
-          },
-        ]}
+      <ScrollView
+        horizontal
+        contentContainerStyle={styles.categoryContent}
+        showsHorizontalScrollIndicator={false}
+        alwaysBounceHorizontal={false}
+        style={{ flexGrow: 0, maxHeight: 65 }}
       >
-        <ScrollView
-          horizontal
-          contentContainerStyle={styles.categoryContent}
-          showsHorizontalScrollIndicator={false}
-          alwaysBounceHorizontal={false}
-          style={{ flexGrow: 0, maxHeight: 65 }}
-        >
-          {CATEGORIES.map((category) => (
-            <CategoryChip
-              key={category}
-              label={category}
-              isActive={activeCategory === category}
-              onPress={() => handleCategoryChange(category)}
-            />
-          ))}
-        </ScrollView>
-      </Animated.View>
-      <Animated.View
-        style={[
-          {
-            opacity: animatedHeight,
-            maxHeight: animatedHeight.interpolate({
-              inputRange: [0, 1],
-              outputRange: [0, 60],
-            }),
-          },
-        ]}
-      >
-        <TextInput
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder='Irk, isim veya açıklama ara...'
-          placeholderTextColor='#9CA3AF'
-          style={styles.searchInput}
-        />
-      </Animated.View>
+        {CATEGORIES.map((category) => (
+          <CategoryChip
+            key={category}
+            label={category}
+            isActive={activeCategory === category}
+            onPress={() => handleCategoryChange(category)}
+          />
+        ))}
+      </ScrollView>
+
+      <TextInput
+        value={searchQuery}
+        onChangeText={setSearchQuery}
+        placeholder='Irk, isim veya açıklama ara...'
+        placeholderTextColor='#9CA3AF'
+        style={styles.searchInput}
+      />
 
       <FlatList
         data={displayData}
@@ -208,7 +152,6 @@ const HomeScreen = () => {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
-        onScroll={handleScroll}
         scrollEventThrottle={16}
       />
     </ThemedView>

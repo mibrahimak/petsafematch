@@ -10,7 +10,7 @@ import {
 import React from 'react';
 import { useTheme } from '../hooks/useTheme';
 import ThemedView from './ThemedView';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Feather } from '@expo/vector-icons';
 import ThemedText from './ThemedText';
 import AppLogo from './AppLogo';
 
@@ -33,7 +33,7 @@ const CustomHeader = () => {
         </Pressable>
 
         <View style={styles.logoContainer}>
-          <AppLogo size={44} color={colors.title} />
+          <AppLogo size={44} />
         </View>
 
         <View style={styles.actionIcons}>
@@ -43,7 +43,7 @@ const CustomHeader = () => {
           >
             <Ionicons
               name='notifications-outline'
-              size={24}
+              size={26}
               color={colors.title}
             />
           </Pressable>
@@ -52,7 +52,7 @@ const CustomHeader = () => {
             onPress={() => console.log('Mesajlar')}
             style={styles.iconButton}
           >
-            <Ionicons name='mail-outline' size={24} color={colors.title} />
+            <Feather name='message-circle' size={26} color={colors.title} />
           </Pressable>
         </View>
       </View>

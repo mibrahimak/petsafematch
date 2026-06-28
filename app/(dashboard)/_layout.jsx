@@ -1,6 +1,4 @@
 import { Tabs } from 'expo-router';
-import { useContext } from 'react';
-import { ScrollContext } from '../../contexts/ScrollContext';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -11,7 +9,6 @@ import CustomHeader from '../../components/CustomHeader';
 
 const DashboardLayout = () => {
   const { colors } = useTheme();
-  const { shouldHideTabBar } = useContext(ScrollContext);
 
   return (
     <Tabs
@@ -21,7 +18,6 @@ const DashboardLayout = () => {
         header: () => <CustomHeader />,
         headerTitle: '',
         tabBarStyle: {
-          display: shouldHideTabBar ? 'none' : 'flex',
           backgroundColor: colors.navBackground,
           paddingTop: 10,
           height: 90,
@@ -34,7 +30,6 @@ const DashboardLayout = () => {
       <Tabs.Screen
         name='index'
         options={{
-          title: 'Keşfet',
           tabBarIcon: ({ focused }) => (
             <Ionicons
               size={24}
@@ -47,7 +42,6 @@ const DashboardLayout = () => {
       <Tabs.Screen
         name='ilanlarım'
         options={{
-          title: 'İlanlarım',
           tabBarIcon: ({ focused }) => (
             <Ionicons
               size={24}
@@ -60,7 +54,6 @@ const DashboardLayout = () => {
       <Tabs.Screen
         name='ilan-ver'
         options={{
-          title: 'İlan Ver',
           tabBarIcon: ({ focused }) => (
             <Ionicons
               size={24}
@@ -73,7 +66,6 @@ const DashboardLayout = () => {
       <Tabs.Screen
         name='favorites'
         options={{
-          title: 'Favoriler',
           tabBarIcon: ({ focused }) => (
             <Ionicons
               size={24}
@@ -86,7 +78,6 @@ const DashboardLayout = () => {
       <Tabs.Screen
         name='profile'
         options={{
-          title: 'Profil',
           tabBarIcon: ({ focused }) => (
             <Ionicons
               size={24}

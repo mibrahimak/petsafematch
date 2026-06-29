@@ -22,7 +22,9 @@ import ThemedButton from '../../components/ThemedButton';
 const Profile = () => {
   const { logout, isLoggedIn, profile, user, isLoading } =
     useContext(AuthContext);
-  const { colors } = useTheme();
+  const { colors, theme, toggleTheme } = useTheme();
+  const isDark = theme === 'dark';
+
   const router = useRouter();
 
   const [isEditing, setIsEditing] = useState(false);
@@ -54,25 +56,25 @@ const Profile = () => {
     profile?.avatar_url ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2B62E5&color=fff&size=150`;
 
-  const handleEditPress = () => {
-    setNameInput(fullName);
-    setIsEditing(true);
-  };
+  // const handleEditPress = () => {
+  //   setNameInput(fullName);
+  //   setIsEditing(true);
+  // };
 
-  const handleSaveProfile = async () => {
-    if (!nameInput.trim()) {
-      Alert.alert('Uyarı', 'İsim alanı boş bırakılamaz!');
-      return;
-    }
+  // const handleSaveProfile = async () => {
+  //   if (!nameInput.trim()) {
+  //     Alert.alert('Uyarı', 'İsim alanı boş bırakılamaz!');
+  //     return;
+  //   }
 
-    try {
-      await updateProfile(nameInput.trim());
-      setIsEditing(false);
-      Alert.alert('Başarılı', 'Profil bilgileriniz güncellendi.');
-    } catch (error) {
-      Alert.alert('Hata', error.message);
-    }
-  };
+  //   try {
+  //     await updateProfile(nameInput.trim());
+  //     setIsEditing(false);
+  //     Alert.alert('Başarılı', 'Profil bilgileriniz güncellendi.');
+  //   } catch (error) {
+  //     Alert.alert('Hata', error.message);
+  //   }
+  // };
 
   const menuItems = [
     {
@@ -110,73 +112,37 @@ const Profile = () => {
         <View style={styles.profileHeader}>
           <View style={styles.avatarWrapper}>
             <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-            <Pressable
-              style={[
-                styles.editAvatarButton,
-                { backgroundColor: colors.buttonBg || '#2B62E5' },
-              ]}
-            >
-              <Ionicons name='camera' size={16} color='#FFF' />
-            </Pressable>
           </View>
-
-          {isEditing ? (
-            <View style={styles.inputContainer}>
-              <TextInput
-                style={[
-                  styles.nameInput,
-                  { color: colors.textColor, borderColor: colors.borderColor },
-                ]}
-                value={nameInput}
-                onChangeText={setNameInput}
-                placeholder='Adınız Soyadınız'
-                placeholderTextColor='#9CA3AF'
-                autoFocus
-              />
-              <View style={styles.actionRow}>
-                <Pressable
-                  onPress={() => setIsEditing(false)}
-                  style={styles.cancelButton}
-                >
-                  <ThemedText style={{ color: '#EF4444' }}>İptal</ThemedText>
-                </Pressable>
-                <Pressable
-                  onPress={handleSaveProfile}
-                  style={styles.saveButton}
-                >
-                  <ThemedText style={{ color: '#10B981', fontWeight: '700' }}>
-                    Kaydet
-                  </ThemedText>
-                </Pressable>
-              </View>
-            </View>
-          ) : (
-            <>
-              <ThemedText style={styles.fullName}>{fullName}</ThemedText>
-              <ThemedText style={styles.email}>{email}</ThemedText>
-            </>
-          )}
+          <ThemedText style={styles.fullName}>{fullName}</ThemedText>
+          <ThemedText style={styles.email}>{email}</ThemedText>
         </View>
 
         <View
           style={[styles.menuContainer, { borderColor: colors.borderColor }]}
         >
           <Pressable
-            style={[styles.menuItem, { borderColor: colors.borderColor }]}
-            onPress={handleEditPress}
+            style={[
+              styles.menuItem,
+              styles.menuItemBorder,
+              { borderColor: colors.borderColor },
+            ]}
+            onPress={toggleTheme} // Tıklandığında light/dark arası geçiş yapacak
           >
             <View style={styles.menuItemLeft}>
               <Ionicons
-                name='person-outline'
+                name={isDark ? 'sunny-outline' : 'moon-outline'} // Gece moduysa güneş, gündüzse ay ikonu
                 size={22}
                 color={colors.textColor}
                 style={styles.menuIcon}
               />
               <ThemedText style={styles.menuItemText}>
-                Kullanıcı Adını Değiştir
+                {isDark ? 'Karanlık Mod' : 'Aydınlık Mod'}
               </ThemedText>
             </View>
-            <Ionicons name='chevron-forward' size={18} color='#9CA3AF' />
+            {/* Duruma göre sağdaki küçük yazıyı da güncelleyebilirsin */}
+            <ThemedText style={styles.themeStatusText}>
+              {isDark ? 'Açık' : 'Açık'}
+            </ThemedText>
           </Pressable>
 
           {menuItems.map((item, index) => (
@@ -242,18 +208,18 @@ const styles = StyleSheet.create({
     height: 100,
     borderRadius: 50,
   },
-  editAvatarButton: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 3,
-    borderColor: 'transparent',
-  },
+  // editAvatarButton: {
+  //   position: 'absolute',
+  //   bottom: 0,
+  //   right: 0,
+  //   width: 32,
+  //   height: 32,
+  //   borderRadius: 16,
+  //   alignItems: 'center',
+  //   justifyContent: 'center',
+  //   borderWidth: 3,
+  //   borderColor: 'transparent',
+  // },
   fullName: {
     fontSize: 22,
     fontWeight: '700',
@@ -272,10 +238,9 @@ const styles = StyleSheet.create({
   menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'between',
+    justifyContent: 'space-between',
     paddingVertical: 16,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
   },
   menuItemBorder: {
     borderBottomWidth: 1,
@@ -294,10 +259,10 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '500',
   },
-  logoutWrapper: {
-    marginTop: 30,
-    alignItems: 'center',
-    width: '100%',
+  themeStatusText: {
+    fontSize: 14,
+    color: '#9CA3AF',
+    fontWeight: '500',
   },
   buttonContainer: {
     width: '100%',
@@ -309,29 +274,34 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     fontSize: 16,
   },
-  inputContainer: {
-    width: '100%',
+  logoutWrapper: {
+    marginTop: 30,
     alignItems: 'center',
-    paddingHorizontal: 20,
-  },
-  nameInput: {
     width: '100%',
-    borderWidth: 1,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    fontSize: 16,
-    textAlign: 'center',
-    marginBottom: 10,
   },
-  actionRow: {
-    flexDirection: 'row',
-    gap: 20,
-  },
-  cancelButton: {
-    padding: 8,
-  },
-  saveButton: {
-    padding: 8,
-  },
+  // inputContainer: {
+  //   width: '100%',
+  //   alignItems: 'center',
+  //   paddingHorizontal: 20,
+  // },
+  // nameInput: {
+  //   width: '100%',
+  //   borderWidth: 1,
+  //   borderRadius: 8,
+  //   paddingHorizontal: 12,
+  //   paddingVertical: 8,
+  //   fontSize: 16,
+  //   textAlign: 'center',
+  //   marginBottom: 10,
+  // },
+  // actionRow: {
+  //   flexDirection: 'row',
+  //   gap: 20,
+  // },
+  // cancelButton: {
+  //   padding: 8,
+  // },
+  // saveButton: {
+  //   padding: 8,
+  // },
 });

@@ -21,6 +21,7 @@ export default function ThemeProvider({ children }) {
     return {
       theme,
       colors,
+      setTheme,
     };
   }, [theme, colors]);
   return (

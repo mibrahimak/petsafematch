@@ -13,20 +13,13 @@ const Home = () => {
   useEffect(() => {
     if (!isLoading) {
       if (isLoggedIn) {
-        {
-          /* Giriş yapılmışsa direkt sekmelerin olduğu dashboard'a fırlat */
-        }
         router.replace('/(dashboard)');
       } else {
-        {
-          /* Giriş yapılmamışsa tam sayfa login'e fırlat */
-        }
         router.replace('/login');
       }
     }
   }, [isLoading, isLoggedIn, router]);
 
-  // Splash sonrası loading animasyonu
   return (
     <ThemedView style={styles.container}>
       <ActivityIndicator size='large' />

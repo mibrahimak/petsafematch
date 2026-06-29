@@ -2,21 +2,21 @@ import { Stack, useLocalSearchParams } from 'expo-router';
 import { useFavoriteStore } from '../../src/store/useFavoriteStore';
 import { usePetStore } from '../../src/store/usePetStore';
 import * as Linking from 'expo-linking';
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  ScrollView,
-  Image,
-} from 'react-native';
+import { Pressable, StyleSheet, View, ScrollView, Image } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
+import { useTheme } from '../../hooks/useTheme';
+
+import ThemedView from '../../components/ThemedView';
+import ThemedText from '../../components/ThemedText';
+import ThemedButton from '../../components/ThemedButton';
 
 export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams();
   const favorites = useFavoriteStore((state) => state.favorites);
   const toggleFavorite = useFavoriteStore((state) => state.toggleFavorite);
   const pets = usePetStore((state) => state.pets);
+
+  const { colors } = useTheme();
 
   const pet = pets.find((item) => String(item.id) === String(id));
   const isFavorite = favorites.includes(pet?.id);
@@ -31,34 +31,38 @@ export default function ListingDetailScreen() {
 
   if (!pet) {
     return (
-      <>
+      <ThemedView style={styles.centerContainer}>
         <Stack.Screen options={{ title: 'İlan Detayı' }} />
-        <View style={styles.centerContainer}>
-          <Text style={styles.title}>İlan bulunamadı...</Text>
-          <Text style={styles.subtitle}>Bu ID ile eşleşen bir ilan yok!</Text>
-        </View>
-      </>
+        <ThemedText style={styles.title}>İlan bulunamadı...</ThemedText>
+        <ThemedText style={styles.subtitle}>
+          Bu ID ile eşleşen bir ilan yok!
+        </ThemedText>
+      </ThemedView>
     );
   }
 
   return (
-    <>
+    <ThemedView style={styles.container}>
       <Stack.Screen
         options={{
           title: pet.name,
           headerShown: true,
           headerBackTitle: ' ',
           headerBackButtonDisplayMode: 'minimal',
+          headerStyle: { backgroundColor: colors.background },
+          headerTintColor: colors.text,
         }}
       />
 
       <ScrollView
-        style={styles.container}
+        style={[styles.container, { backgroundColor: colors.background }]}
         contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
       >
         <Image source={{ uri: pet.image_url }} style={styles.image} />
+
         <View style={styles.titleRow}>
-          <Text style={styles.title}>{pet.name}</Text>
+          <ThemedText style={styles.title}>{pet.name}</ThemedText>
 
           <Pressable
             style={styles.favoriteButton}
@@ -71,18 +75,28 @@ export default function ListingDetailScreen() {
             />
           </Pressable>
         </View>
-        <Text style={styles.tag}>
-          {pet.species} • {pet.gender} • {pet.age}
-        </Text>
-        <Text style={styles.location}>{pet.location}</Text>
-        <Text style={styles.about}>Hakkında</Text>
-        <Text style={styles.description}>{pet.description}</Text>
 
-        <Pressable style={styles.contactButton} onPress={contactOwner}>
-          <Text style={styles.contactButtonText}>Sahibiyle İletişime Geç</Text>
-        </Pressable>
+        <ThemedText style={[styles.tag, { color: colors.text + '99' }]}>
+          {pet.species} • {pet.gender} • {pet.age}
+        </ThemedText>
+
+        <ThemedText style={[styles.location, { color: colors.te + 'B3' }]}>
+          {pet.location}
+        </ThemedText>
+
+        <ThemedText style={styles.about}>Hakkında</ThemedText>
+
+        <ThemedText style={[styles.description, { color: colors.text }]}>
+          {pet.description}
+        </ThemedText>
+
+        <ThemedButton style={styles.contactButton} onPress={contactOwner}>
+          <ThemedText style={styles.contactButtonText}>
+            Sahibiyle İletişime Geç
+          </ThemedText>
+        </ThemedButton>
       </ScrollView>
-    </>
+    </ThemedView>
   );
 }
 
@@ -107,10 +121,9 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: '700',
-    color: '#111827',
   },
   titleRow: {
-    marignTop: 18,
+    marginTop: 18,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -126,39 +139,32 @@ const styles = StyleSheet.create({
   tag: {
     marginTop: 8,
     fontSize: 14,
-    color: '#4B5563',
   },
   location: {
     marginTop: 6,
     fontSize: 15,
-    color: '#6B7280',
   },
   about: {
     marginTop: 20,
     fontSize: 16,
     fontWeight: '700',
-    color: '#111827',
   },
   description: {
     marginTop: 8,
     fontSize: 15,
     lineHeight: 22,
-    color: '#374151',
   },
   subtitle: {
     marginTop: 8,
     fontSize: 15,
-    color: '#6B7280',
   },
   contactButton: {
     marginTop: 20,
-    backgroundColor: '#2563EB',
-    paddingVertical: 12,
-    borderRadius: 10,
     alignItems: 'center',
   },
   contactButtonText: {
     color: '#FFFFFF',
     fontWeight: '700',
+    fontSize: 16,
   },
 });

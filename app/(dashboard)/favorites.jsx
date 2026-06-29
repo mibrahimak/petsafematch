@@ -1,14 +1,14 @@
 import { FlatList, StyleSheet, View, Text } from 'react-native';
 import { useCallback } from 'react';
-
-// Themed Components
-import ThemedView from '../../components/ThemedView';
-import ThemedText from '../../components/ThemedText';
 import { useRouter } from 'expo-router';
 import { usePetStore } from '../../src/store/usePetStore';
 import { useFavoriteStore } from '../../src/store/useFavoriteStore';
 import PetCard from '../../src/components/petCard';
 import LottieView from 'lottie-react-native';
+
+// Themed Components
+import ThemedView from '../../components/ThemedView';
+import ThemedText from '../../components/ThemedText';
 
 const Favorites = () => {
   const router = useRouter();

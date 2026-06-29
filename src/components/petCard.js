@@ -31,9 +31,8 @@ const PetCard = ({ pet, onPress, isFavorite, onFavoritePress }) => {
       activeOpacity={0.9}
       onPress={onPress}
     >
-      {/* Resim - src yerine source kullanıldı */}
       <Image source={{ uri: pet.image_url }} style={styles.petImage} />
-      {/* Favori butonu eklenecek */}
+
       <FavoriteButton
         isFavorite={isFavorite}
         onPress={(e) => {
@@ -44,14 +43,12 @@ const PetCard = ({ pet, onPress, isFavorite, onFavoritePress }) => {
         }}
       />
 
-      {/* Detaylar */}
       <View style={styles.cardDetails}>
         <View style={styles.headerRow}>
           <ThemedText style={styles.petName} title={true}>
             {pet.name}
           </ThemedText>
 
-          {/* Cinsiyet Etiketi */}
           <View
             style={[
               styles.genderBadge,
@@ -63,7 +60,7 @@ const PetCard = ({ pet, onPress, isFavorite, onFavoritePress }) => {
             <ThemedText
               style={[
                 styles.genderText,
-                { color: pet.gender === 'Dişi' ? '#db2777' : '#2563eb' }, // ' Dişi' düzeltildi
+                { color: pet.gender === 'Dişi' ? '#db2777' : '#2563eb' },
               ]}
             >
               {pet.gender}
@@ -71,12 +68,10 @@ const PetCard = ({ pet, onPress, isFavorite, onFavoritePress }) => {
           </View>
         </View>
 
-        {/* Meta Bilgiler */}
         <ThemedText style={styles.petMeta}>
           {pet.category} • {pet.age} • {pet.location}
         </ThemedText>
 
-        {/* Açıklama */}
         <ThemedText style={styles.description} numberOfLines={2}>
           {pet.description}
         </ThemedText>
@@ -123,7 +118,7 @@ const styles = StyleSheet.create({
   },
   genderText: {
     fontSize: 12,
-    fontWeight: '600', // Sayıdan stringe ('600') çevrildi
+    fontWeight: '600',
   },
   petMeta: {
     fontSize: 14,

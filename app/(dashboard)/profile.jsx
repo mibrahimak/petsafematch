@@ -126,11 +126,11 @@ const Profile = () => {
               styles.menuItemBorder,
               { borderColor: colors.borderColor },
             ]}
-            onPress={toggleTheme} // Tıklandığında light/dark arası geçiş yapacak
+            onPress={toggleTheme}
           >
             <View style={styles.menuItemLeft}>
               <Ionicons
-                name={isDark ? 'sunny-outline' : 'moon-outline'} // Gece moduysa güneş, gündüzse ay ikonu
+                name={isDark ? 'sunny-outline' : 'moon-outline'}
                 size={22}
                 color={colors.textColor}
                 style={styles.menuIcon}
@@ -139,7 +139,7 @@ const Profile = () => {
                 {isDark ? 'Karanlık Mod' : 'Aydınlık Mod'}
               </ThemedText>
             </View>
-            {/* Duruma göre sağdaki küçük yazıyı da güncelleyebilirsin */}
+
             <ThemedText style={styles.themeStatusText}>
               {isDark ? 'Açık' : 'Açık'}
             </ThemedText>

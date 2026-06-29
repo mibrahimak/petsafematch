@@ -10,14 +10,12 @@ import {
 } from 'react-native';
 import React, { useContext, useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
-
 import { AuthContext } from '../../contexts/AuthContext';
-
-// Themed Components
 import ThemedView from '../../components/ThemedView';
 import ThemedTextInput from '../../components/ThemedTextInput';
 import ThemedButton from '../../components/ThemedButton';
 import ThemedText from '../../components/ThemedText';
+import AppLogo from '../../components/AppLogo';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -66,21 +64,20 @@ const Login = () => {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ThemedView style={styles.container}>
-          <ThemedText style={styles.title} title={true}>
-            Giriş Yap
-          </ThemedText>
+          <AppLogo size={120} />
+          <ThemedText style={styles.petsafematchText}>PetSafe&Match</ThemedText>
 
           <ThemedTextInput
             style={styles.inputStyle}
-            placeholder="Email"
-            keyboardType="email-address"
+            placeholder='Email'
+            keyboardType='email-address'
             onChangeText={setEmail}
             value={email}
           />
 
           <ThemedTextInput
             style={styles.inputStyle}
-            placeholder="Password"
+            placeholder='Password'
             onChangeText={setPassword}
             value={password}
             secureTextEntry
@@ -108,7 +105,6 @@ const Login = () => {
               <Text style={styles.buttonText}>Yeni hesap oluştur</Text>
             </ThemedButton>
           </View>
-          <ThemedText style={styles.footerText}>PetSafe&Match</ThemedText>
         </ThemedView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -158,8 +154,8 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     borderColor: '#e05260',
   },
-  footerText: {
-    marginTop: 30,
+  petsafematchText: {
+    marginBottom: 12,
     fontSize: 18,
     fontWeight: 'bold',
     alignItems: 'center',

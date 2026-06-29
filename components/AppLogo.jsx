@@ -1,11 +1,11 @@
 import * as React from 'react';
 import Svg, { G, Rect, Path, Defs } from 'react-native-svg';
 /* SVGR has dropped some elements not supported by react-native-svg: filter */
-const AppLogo = () => (
+const AppLogo = ({ size = 65 }) => (
   <Svg
     xmlns='http://www.w3.org/2000/svg'
-    width={65}
-    height={65}
+    width={size}
+    height={size}
     fill='none'
     viewBox='0 0 160 160'
   >

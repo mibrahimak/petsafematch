@@ -130,7 +130,7 @@ const Profile = () => {
           >
             <View style={styles.menuItemLeft}>
               <Ionicons
-                name={isDark ? 'sunny-outline' : 'moon-outline'}
+                name={isDark ? 'moon-outline' : 'sunny-outline'}
                 size={22}
                 color={colors.textColor}
                 style={styles.menuIcon}

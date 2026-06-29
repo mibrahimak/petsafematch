@@ -18,6 +18,7 @@ import ThemedView from '../../components/ThemedView';
 import ThemedText from '../../components/ThemedText';
 import ThemedTextInput from '../../components/ThemedTextInput';
 import ThemedButton from '../../components/ThemedButton';
+import AppLogo from '../../components/AppLogo';
 
 const Register = () => {
   const [email, setEmail] = useState('');
@@ -72,28 +73,27 @@ const Register = () => {
     >
       <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ThemedView style={styles.container}>
-          <ThemedText style={styles.title} title={true}>
-            Kaydol
-          </ThemedText>
+          <AppLogo size={120} />
+          <ThemedText style={styles.petsafematchText}>PetSafe&Match</ThemedText>
 
           <ThemedTextInput
             style={styles.inputStyle}
-            placeholder="Fullname"
+            placeholder='Fullname'
             onChangeText={setFullName}
             value={fullName}
           />
 
           <ThemedTextInput
             style={styles.inputStyle}
-            placeholder="Email"
-            keyboardType="email-address"
+            placeholder='Email'
+            keyboardType='email-address'
             onChangeText={setEmail}
             value={email}
           />
 
           <ThemedTextInput
             style={styles.inputStyle}
-            placeholder="Password"
+            placeholder='Password'
             onChangeText={setPassword}
             value={password}
             secureTextEntry
@@ -109,18 +109,6 @@ const Register = () => {
               <Text style={styles.buttonText}>Zaten hesabın mı var?</Text>
             </ThemedButton>
           </View>
-
-          <ThemedText
-            style={{
-              marginTop: 30,
-              fontSize: 18,
-              fontWeight: 'bold',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
-          >
-            PetSafe&Match
-          </ThemedText>
         </ThemedView>
       </TouchableWithoutFeedback>
     </KeyboardAvoidingView>
@@ -176,5 +164,12 @@ const styles = StyleSheet.create({
     width: '80%',
     textAlign: 'center',
     borderColor: '#e05260',
+  },
+  petsafematchText: {
+    marginBottom: 12,
+    fontSize: 18,
+    fontWeight: 'bold',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });

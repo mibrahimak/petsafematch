@@ -3,7 +3,6 @@ import { useContext, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { AuthContext } from '../contexts/AuthContext';
 
-// Themed Components
 import ThemedView from '../components/ThemedView';
 
 const Home = () => {

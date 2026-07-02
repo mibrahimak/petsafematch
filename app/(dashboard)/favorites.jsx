@@ -6,7 +6,6 @@ import { useFavoriteStore } from '../../src/store/useFavoriteStore';
 import PetCard from '../../src/components/petCard';
 import LottieView from 'lottie-react-native';
 
-// Themed Components
 import ThemedView from '../../components/ThemedView';
 import ThemedText from '../../components/ThemedText';
 

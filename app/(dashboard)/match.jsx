@@ -4,17 +4,17 @@ import { StyleSheet } from 'react-native';
 import ThemedView from '../../components/ThemedView';
 import ThemedText from '../../components/ThemedText';
 
-const Create = () => {
+const Match = () => {
   return (
     <ThemedView style={styles.innerContainer}>
       <ThemedText style={styles.title} title={true}>
-        İlan oluşturma sayfası burada!
+        Eşleştirme sayfası burada
       </ThemedText>
     </ThemedView>
   );
 };
 
-export default Create;
+export default Match;
 
 const styles = StyleSheet.create({
   innerContainer: {

@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 
 import ThemedText from '../../components/ThemedText';
 import CustomHeader from '../../components/CustomHeader';
+import AppLogo from '../../components/AppLogo';
 
 const DashboardLayout = () => {
   const { colors } = useTheme();
@@ -55,13 +56,11 @@ const DashboardLayout = () => {
         }}
       />
       <Tabs.Screen
-        name='ilan-ver'
+        name='match'
         options={{
-          title: 'İlan Ver',
+          title: 'Match',
           tabBarIcon: ({ focused }) => (
-            <Ionicons
-              size={24}
-              name={focused ? 'create' : 'create-outline'}
+            <AppLogo
               color={focused ? colors.iconColorFocused : colors.iconColor}
             />
           ),

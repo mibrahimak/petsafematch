@@ -1,7 +1,6 @@
 import React, {
   useState,
   useMemo,
-  act,
   useCallback,
   useEffect,
   useRef,
@@ -17,10 +16,14 @@ import {
 } from 'react-native';
 import { useFavoriteStore } from '../../src/store/useFavoriteStore';
 import { ScrollContext } from '../../contexts/ScrollContext';
-import PetCard from '../../src/components/petCard';
-import ThemedView from '../../components/ThemedView';
 import { usePetStore } from '../../src/store/usePetStore';
 import { useRouter } from 'expo-router';
+import { useTheme } from '../../hooks/useTheme';
+import { Ionicons } from '@expo/vector-icons';
+
+import CreateListingModal from '../../components/CreateListingModal';
+import ThemedView from '../../components/ThemedView';
+import PetCard from '../../src/components/petCard';
 
 const CATEGORIES = ['Hepsi', 'Kedi', 'Köpek', 'Kuş', 'Diğer'];
 
@@ -54,6 +57,9 @@ const CategoryChip = React.memo(function CategoryChip({
 const HomeScreen = () => {
   const [activeCategory, setActiveCategory] = useState('Hepsi');
   const [searchQuery, setSearchQuery] = useState();
+  const [modalVisible, setModalVisible] = useState(false);
+
+  const { colors } = useTheme();
 
   const favorites = useFavoriteStore((state) => state.favorites);
   const toggleFavorite = useFavoriteStore((state) => state.toggleFavorite);
@@ -135,7 +141,6 @@ const HomeScreen = () => {
       <FlatList
         data={displayData}
         renderItem={({ item }) => {
-          // Zustand'dan gelen dizide bu id var mı kontrol ediyoruz
           const isCardFavorite = favorites.includes(item.id);
 
           return (
@@ -153,6 +158,18 @@ const HomeScreen = () => {
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}
         scrollEventThrottle={16}
+      />
+
+      <Pressable
+        style={[styles.floatingButton, { backgroundColor: '#2563EB' }]}
+        onPress={() => setModalVisible(true)}
+      >
+        <Ionicons name='add' size={30} color='#FFF' />
+      </Pressable>
+      <CreateListingModal
+        visible={modalVisible}
+        onClose={() => setModalVisible(false)}
+        onRefreshListings={fetchPets}
       />
     </ThemedView>
   );
@@ -205,5 +222,15 @@ const styles = StyleSheet.create({
   },
   listContainer: {
     padding: 16,
+  },
+  floatingButton: {
+    position: 'absolute',
+    bottom: 10,
+    right: 10,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

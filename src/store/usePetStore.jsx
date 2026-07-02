@@ -17,4 +17,14 @@ export const usePetStore = create((set) => ({
       set({ loading: false });
     }
   },
+
+  addPetToStore: (newPet) =>
+    set((state) => ({
+      pets: [newPet, ...state.pets],
+    })),
+
+  removePetFromStore: (id) =>
+    set((state) => ({
+      pets: state.pets.filter((pet) => pet.id !== id),
+    })),
 }));

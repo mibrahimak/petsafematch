@@ -9,6 +9,8 @@ import {
   Pressable,
   Image,
   Text,
+  KeyboardAvoidingView,
+  Platform,
 } from 'react-native';
 import { AuthContext } from '../contexts/AuthContext';
 import { useTheme } from '../hooks/useTheme';
@@ -16,6 +18,7 @@ import { supabase } from '../libs/supabase';
 import { Ionicons } from '@expo/vector-icons';
 import { useFormik } from 'formik';
 import { usePetStore } from '../src/store/usePetStore';
+import { File } from 'expo-file-system';
 import * as ImagePicker from 'expo-image-picker';
 import * as yup from 'yup';
 
@@ -44,19 +47,25 @@ export default function CreateListingModal({
 
   const addPetToStore = usePetStore((state) => state.addPetToStore);
 
-  const uploadImageAsync = async (uri) => {
+  const uploadImageAsync = async ({ uri, fileName, mimeType }) => {
     try {
-      const fileExt = uri.split('.').pop() || 'jpg';
-      const fileName = `${user?.id || 'anon'}-${Date.now()}.${fileExt}`;
-      const filePath = `${fileName}`;
+      const fileExt =
+        mimeType?.split('/').pop() || fileName?.split('.').pop() || 'jpg';
+      const safeMimeType =
+        mimeType || `image/${fileExt === 'jpg' ? 'jpeg' : fileExt}`;
+      const uploadFileName =
+        fileName || `${user?.id || 'anon'}-${Date.now()}.${fileExt}`;
+      const filePath = `${user?.id || 'anon'}/${uploadFileName}`;
 
-      const response = await fetch(uri);
-      const blob = await response.blob();
+      const imageFile = new File(uri);
+
+      const bytes = await imageFile.bytes();
 
       const { data, error } = await supabase.storage
         .from('pet-photos')
-        .upload(filePath, blob, {
-          contentType: `image/${fileExt}`,
+        .upload(filePath, bytes, {
+          contentType: safeMimeType,
+          upsert: false,
         });
 
       if (error) throw error;
@@ -77,6 +86,8 @@ export default function CreateListingModal({
       name: '',
       description: '',
       imageUri: '',
+      imageFileName: '',
+      imageMimeType: '',
       age: '',
       location: '',
       gender: '',
@@ -86,7 +97,11 @@ export default function CreateListingModal({
     validationSchema: formSchema,
     onSubmit: async (values, { setSubmitting, resetForm }) => {
       try {
-        const publicImageUrl = await uploadImageAsync(values.imageUri);
+        const publicImageUrl = await uploadImageAsync({
+          uri: values.imageUri,
+          fileName: values.imageFileName,
+          mimeType: values.imageMimeType,
+        });
 
         const { data, error } = await supabase
           .from('listings')
@@ -142,192 +157,210 @@ export default function CreateListingModal({
     });
 
     if (!result.canceled && result.assets?.length) {
-      formik.setFieldValue('imageUri', result.assets[0].uri);
+      const asset = result.assets[0];
+      formik.setFieldValue('imageUri', asset.uri);
+      formik.setFieldValue('imageFileName', asset.fileName || 'pet-photo.jpg');
+      formik.setFieldValue('imageMimeType', asset.mimeType || 'image/jpeg');
     }
   };
 
   return (
     <Modal visible={visible} animationType='slide' transparent={false}>
-      <ThemedView style={styles.modalContainer}>
-        <View style={styles.header}>
-          <Pressable onPress={onClose}>
-            <Ionicons name='close' size={24} color={colors.textColor} />
-          </Pressable>
-          <ThemedText style={styles.headerTitle}>Yeni İlan Oluştur</ThemedText>
-          <View style={{ width: 24 }} />
-        </View>
-
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          <ThemedText style={styles.label}>Fotoğraf Ekle *</ThemedText>
-          {formik.values.imageUri ? (
-            <View style={styles.imagePreviewContainer}>
-              <Image
-                source={{ uri: formik.values.imageUri }}
-                style={styles.imagePreview}
-              />
-              <Pressable
-                style={styles.removeImageButton}
-                onPress={() => formik.setFieldValue('imageUri', '')}
-              >
-                <Ionicons name='trash-outline' size={18} color='#FFF' />
-              </Pressable>
-            </View>
-          ) : (
-            <Pressable
-              style={[
-                styles.imagePickerPlaceholder,
-                {
-                  borderColor:
-                    formik.errors.imageUri && formik.touched.imageUri
-                      ? '#EF4444'
-                      : colors.borderColor,
-                  backgroundColor: colors.cardBg,
-                },
-              ]}
-              onPress={pickImage}
-            >
-              <Ionicons name='camera-outline' size={36} color='#9CA3AF' />
-              <Text style={styles.placeholderText}>
-                Fotoğraf Seçmek İçin Dokunun
-              </Text>
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.flexContainer}
+      >
+        <ThemedView style={styles.modalContainer}>
+          <View style={styles.header}>
+            <Pressable onPress={onClose}>
+              <Ionicons name='close' size={24} color={colors.text} />
             </Pressable>
-          )}
-          {formik.errors.imageUri && formik.touched.imageUri && (
-            <Text style={styles.errorText}>{formik.errors.imageUri}</Text>
-          )}
-
-          <ThemedText style={styles.label}>Evcil Hayvan Adı *</ThemedText>
-          <TextInput
-            style={[
-              styles.input,
-              { borderColor: colors.borderColor, color: colors.textColor },
-            ]}
-            value={formik.values.name}
-            onChangeText={formik.handleChange('name')}
-            onBlur={formik.handleBlur('name')}
-            placeholder='Örn: Pamuk'
-          />
-          {formik.errors.name && formik.touched.name && (
-            <Text style={styles.errorText}>{formik.errors.name}</Text>
-          )}
-
-          <ThemedText style={styles.label}>Türü / Irkı *</ThemedText>
-          <TextInput
-            style={[
-              styles.input,
-              { borderColor: colors.borderColor, color: colors.textColor },
-            ]}
-            value={formik.values.species}
-            onChangeText={formik.handleChange('species')}
-            onBlur={formik.handleBlur('species')}
-            placeholder='Örn: Tekir'
-          />
-          {formik.errors.species && formik.touched.species && (
-            <Text style={styles.errorText}>{formik.errors.species}</Text>
-          )}
-
-          <ThemedText style={styles.label}>Cinsiyet *</ThemedText>
-          <TextInput
-            style={[
-              styles.input,
-              { borderColor: colors.borderColor, color: colors.textColor },
-            ]}
-            value={formik.values.gender}
-            onChangeText={formik.handleChange('gender')}
-            onBlur={formik.handleBlur('gender')}
-            placeholder='Erkek / Dişi'
-          />
-          {formik.errors.gender && formik.touched.gender && (
-            <Text style={styles.errorText}>{formik.errors.gender}</Text>
-          )}
-
-          <ThemedText style={styles.label}>Yaşı *</ThemedText>
-          <TextInput
-            style={[
-              styles.input,
-              { borderColor: colors.borderColor, color: colors.textColor },
-            ]}
-            value={formik.values.age}
-            onChangeText={formik.handleChange('age')}
-            onBlur={formik.handleBlur('age')}
-            placeholder='Örn: 2 Yaşında'
-          />
-          {formik.errors.age && formik.touched.age && (
-            <Text style={styles.errorText}>{formik.errors.age}</Text>
-          )}
-
-          <ThemedText style={styles.label}>Konum *</ThemedText>
-          <TextInput
-            style={[
-              styles.input,
-              { borderColor: colors.borderColor, color: colors.textColor },
-            ]}
-            value={formik.values.location}
-            onChangeText={formik.handleChange('location')}
-            onBlur={formik.handleBlur('location')}
-            placeholder='Örn: Samsun, Atakum'
-          />
-          {formik.errors.location && formik.touched.location && (
-            <Text style={styles.errorText}>{formik.errors.location}</Text>
-          )}
-
-          <ThemedText style={styles.label}>Kategori *</ThemedText>
-          <TextInput
-            style={[
-              styles.input,
-              { borderColor: colors.borderColor, color: colors.textColor },
-            ]}
-            value={formik.values.category}
-            onChangeText={formik.handleChange('category')}
-            onBlur={formik.handleBlur('category')}
-            placeholder='Kedi / Köpek vs...'
-          />
-          {formik.errors.category && formik.touched.category && (
-            <Text style={styles.errorText}>{formik.errors.category}</Text>
-          )}
-
-          <ThemedText style={styles.label}>Açıklama *</ThemedText>
-          <TextInput
-            style={[
-              styles.input,
-              styles.textArea,
-              { borderColor: colors.borderColor, color: colors.textColor },
-            ]}
-            value={formik.values.description}
-            onChangeText={formik.handleChange('description')}
-            onBlur={formik.handleBlur('description')}
-            placeholder='İlan detayları...'
-            multiline
-            numberOfLines={4}
-          />
-          {formik.errors.description && formik.touched.description && (
-            <Text style={styles.errorText}>{formik.errors.description}</Text>
-          )}
-
-          <ThemedButton
-            style={[
-              styles.submitButton,
-              { opacity: formik.isSubmitting ? 0.6 : 1 },
-            ]}
-            onPress={formik.handleSubmit}
-            disabled={formik.isSubmitting}
-          >
-            <ThemedText style={styles.buttonText}>
-              {formik.isSubmitting
-                ? 'Fotoğraf Yükleniyor ve İlan Oluşturuluyor...'
-                : 'Yayınla'}
+            <ThemedText style={styles.headerTitle}>
+              Yeni İlan Oluştur
             </ThemedText>
-          </ThemedButton>
-        </ScrollView>
-      </ThemedView>
+            <View style={{ width: 24 }} />
+          </View>
+
+          <ScrollView
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
+            keyboardShouldPersistTaps='handled'
+          >
+            <ThemedText style={styles.label}>Fotoğraf Ekle *</ThemedText>
+            {formik.values.imageUri ? (
+              <View style={styles.imagePreviewContainer}>
+                <Image
+                  source={{ uri: formik.values.imageUri }}
+                  style={styles.imagePreview}
+                />
+                <Pressable
+                  style={styles.removeImageButton}
+                  onPress={() => {
+                    formik.setFieldValue('imageUri', '');
+                    formik.setFieldValue('imageFileName', '');
+                    formik.setFieldValue('imageMimeType', '');
+                  }}
+                >
+                  <Ionicons name='trash-outline' size={18} color='#FFF' />
+                </Pressable>
+              </View>
+            ) : (
+              <Pressable
+                style={[
+                  styles.imagePickerPlaceholder,
+                  {
+                    borderColor:
+                      formik.errors.imageUri && formik.touched.imageUri
+                        ? '#EF4444'
+                        : colors.borderColor,
+                    backgroundColor: colors.cardBg,
+                  },
+                ]}
+                onPress={pickImage}
+              >
+                <Ionicons name='camera-outline' size={36} color='#9CA3AF' />
+                <Text style={styles.placeholderText}>
+                  Fotoğraf Seçmek İçin Dokunun
+                </Text>
+              </Pressable>
+            )}
+            {formik.errors.imageUri && formik.touched.imageUri && (
+              <Text style={styles.errorText}>{formik.errors.imageUri}</Text>
+            )}
+
+            <ThemedText style={styles.label}>Evcil Hayvan Adı *</ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                { borderColor: colors.borderColor, color: colors.text },
+              ]}
+              value={formik.values.name}
+              onChangeText={formik.handleChange('name')}
+              onBlur={formik.handleBlur('name')}
+              placeholder='Örn: Pamuk'
+            />
+            {formik.errors.name && formik.touched.name && (
+              <Text style={styles.errorText}>{formik.errors.name}</Text>
+            )}
+
+            <ThemedText style={styles.label}>Türü / Irkı *</ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                { borderColor: colors.borderColor, color: colors.text },
+              ]}
+              value={formik.values.species}
+              onChangeText={formik.handleChange('species')}
+              onBlur={formik.handleBlur('species')}
+              placeholder='Örn: Tekir'
+            />
+            {formik.errors.species && formik.touched.species && (
+              <Text style={styles.errorText}>{formik.errors.species}</Text>
+            )}
+
+            <ThemedText style={styles.label}>Cinsiyet *</ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                { borderColor: colors.borderColor, color: colors.text },
+              ]}
+              value={formik.values.gender}
+              onChangeText={formik.handleChange('gender')}
+              onBlur={formik.handleBlur('gender')}
+              placeholder='Erkek / Dişi'
+            />
+            {formik.errors.gender && formik.touched.gender && (
+              <Text style={styles.errorText}>{formik.errors.gender}</Text>
+            )}
+
+            <ThemedText style={styles.label}>Yaşı *</ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                { borderColor: colors.borderColor, color: colors.text },
+              ]}
+              value={formik.values.age}
+              onChangeText={formik.handleChange('age')}
+              onBlur={formik.handleBlur('age')}
+              placeholder='Örn: 2 Yaşında'
+            />
+            {formik.errors.age && formik.touched.age && (
+              <Text style={styles.errorText}>{formik.errors.age}</Text>
+            )}
+
+            <ThemedText style={styles.label}>Konum *</ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                { borderColor: colors.borderColor, color: colors.text },
+              ]}
+              value={formik.values.location}
+              onChangeText={formik.handleChange('location')}
+              onBlur={formik.handleBlur('location')}
+              placeholder='Örn: Samsun, Atakum'
+            />
+            {formik.errors.location && formik.touched.location && (
+              <Text style={styles.errorText}>{formik.errors.location}</Text>
+            )}
+
+            <ThemedText style={styles.label}>Kategori *</ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                { borderColor: colors.borderColor, color: colors.text },
+              ]}
+              value={formik.values.category}
+              onChangeText={formik.handleChange('category')}
+              onBlur={formik.handleBlur('category')}
+              placeholder='Kedi / Köpek vs...'
+            />
+            {formik.errors.category && formik.touched.category && (
+              <Text style={styles.errorText}>{formik.errors.category}</Text>
+            )}
+
+            <ThemedText style={styles.label}>Açıklama *</ThemedText>
+            <TextInput
+              style={[
+                styles.input,
+                styles.textArea,
+                { borderColor: colors.borderColor, color: colors.text },
+              ]}
+              value={formik.values.description}
+              onChangeText={formik.handleChange('description')}
+              onBlur={formik.handleBlur('description')}
+              placeholder='İlan detayları...'
+              multiline
+              numberOfLines={4}
+            />
+            {formik.errors.description && formik.touched.description && (
+              <Text style={styles.errorText}>{formik.errors.description}</Text>
+            )}
+
+            <ThemedButton
+              style={[
+                styles.submitButton,
+                { opacity: formik.isSubmitting ? 0.6 : 1 },
+              ]}
+              onPress={formik.handleSubmit}
+              disabled={formik.isSubmitting}
+            >
+              <ThemedText style={styles.buttonText}>
+                {formik.isSubmitting
+                  ? 'Fotoğraf Yükleniyor ve İlan Oluşturuluyor...'
+                  : 'Yayınla'}
+              </ThemedText>
+            </ThemedButton>
+          </ScrollView>
+        </ThemedView>
+      </KeyboardAvoidingView>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
+  flexContainer: {
+    flex: 1,
+  },
   modalContainer: {
     flex: 1,
     paddingTop: 50,
@@ -345,7 +378,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 20,
-    paddingBottom: 40,
+    paddingBottom: 140,
   },
   label: {
     fontSize: 14,

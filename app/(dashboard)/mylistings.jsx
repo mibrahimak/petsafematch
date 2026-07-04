@@ -7,6 +7,7 @@ import {
   Alert,
   Pressable,
   Image,
+  RefreshControl,
 } from 'react-native';
 import { supabase } from '../../libs/supabase';
 import { AuthContext } from '../../contexts/AuthContext';
@@ -14,6 +15,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { usePetStore } from '../../src/store/usePetStore';
+import { useRefresh } from '../../hooks/useRefresh';
 
 import CreateListingModal from '../../components/CreateListingModal';
 import ThemedView from '../../components/ThemedView';
@@ -22,12 +24,14 @@ import ThemedButton from '../../components/ThemedButton';
 
 export default function MyListings() {
   const { user } = useContext(AuthContext);
+
   const { colors } = useTheme();
+  const { refreshing, onRefresh } = useRefresh();
+
   const router = useRouter();
 
   const [myListings, setMyListings] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
 
   const removePetFromStore = usePetStore((state) => state.removePetFromStore);
   const fetchPets = usePetStore((state) => state.fetchPets);
@@ -49,18 +53,12 @@ export default function MyListings() {
       console.error(error);
     } finally {
       setLoading(false);
-      setRefreshing(false);
     }
   }, [user?.id]);
 
   useEffect(() => {
     fetchMyListings();
   }, [fetchMyListings]);
-
-  const handleRefresh = () => {
-    setRefreshing(true);
-    fetchMyListings();
-  };
 
   const handleDeleteListing = (id) => {
     Alert.alert(
@@ -105,9 +103,14 @@ export default function MyListings() {
       <FlatList
         data={myListings}
         keyExtractor={(item) => String(item.id)}
-        refreshing={refreshing}
-        onRefresh={handleRefresh}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#2563EB']}
+          />
+        }
         ListEmptyComponent={() => (
           <View style={styles.emptyContainer}>
             <Ionicons name='folder-open-outline' size={64} color='#9CA3AF' />

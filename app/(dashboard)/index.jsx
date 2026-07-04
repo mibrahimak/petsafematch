@@ -13,6 +13,7 @@ import {
   Pressable,
   Text,
   ScrollView,
+  RefreshControl,
 } from 'react-native';
 import { useFavoriteStore } from '../../src/store/useFavoriteStore';
 import { ScrollContext } from '../../contexts/ScrollContext';
@@ -20,6 +21,7 @@ import { usePetStore } from '../../src/store/usePetStore';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
+import { useRefresh } from '../../hooks/useRefresh';
 
 import CreateListingModal from '../../components/CreateListingModal';
 import ThemedView from '../../components/ThemedView';
@@ -60,6 +62,7 @@ const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
 
   const { colors } = useTheme();
+  const { refreshing, onRefresh } = useRefresh();
 
   const favorites = useFavoriteStore((state) => state.favorites);
   const toggleFavorite = useFavoriteStore((state) => state.toggleFavorite);
@@ -154,6 +157,13 @@ const HomeScreen = () => {
             />
           );
         }}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#2563eb']}
+          />
+        }
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContainer}
         showsVerticalScrollIndicator={false}

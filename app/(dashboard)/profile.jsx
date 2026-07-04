@@ -7,14 +7,15 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { useContext, useEffect, useState } from 'react';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
+import { useRefresh } from '../../hooks/useRefresh';
 
-// Themed Components
 import ThemedView from '../../components/ThemedView';
 import ThemedText from '../../components/ThemedText';
 import ThemedButton from '../../components/ThemedButton';
@@ -22,7 +23,10 @@ import ThemedButton from '../../components/ThemedButton';
 const Profile = () => {
   const { logout, isLoggedIn, profile, user, isLoading } =
     useContext(AuthContext);
+
   const { colors, theme, toggleTheme } = useTheme();
+  const { refreshing, onRefresh } = useRefresh();
+
   const isDark = theme === 'dark';
 
   const router = useRouter();
@@ -108,6 +112,13 @@ const Profile = () => {
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={['#2563eb']}
+          />
+        }
       >
         <View style={styles.profileHeader}>
           <View style={styles.avatarWrapper}>

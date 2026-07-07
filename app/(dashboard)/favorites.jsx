@@ -30,6 +30,7 @@ const Favorites = () => {
     ({ item }) => (
       <ThemedView style={styles.cardContainer}>
         <PetCard
+          isFavorite={true}
           pet={item}
           onPress={() =>
             router.push({ pathname: '/ilan/[id]', params: { id: item.id } })
@@ -41,19 +42,19 @@ const Favorites = () => {
   );
   return (
     <ThemedView style={styles.container} safe={true}>
-      <ScrollView
-        contentContainerStyle={styles.scrollViewContent}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            colors={['#2563eb']}
-          />
-        }
-      >
-        {favorites.length === 0 ? (
-          <>
+      {favorites.length === 0 ? (
+        <>
+          <ScrollView
+            contentContainerStyle={styles.scrollViewContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl
+                refreshing={refreshing}
+                onRefresh={onRefresh}
+                colors={['#2563eb']}
+              />
+            }
+          >
             <ThemedText style={styles.title} title={true}>
               Favoriler
             </ThemedText>
@@ -68,21 +69,28 @@ const Favorites = () => {
               loop
               style={styles.emptyAnimation}
             />
-          </>
-        ) : (
-          <FlatList
-            key='favorites-grid'
-            data={favorites}
-            keyExtractor={(item) => item.id}
-            renderItem={renderItem}
-            numColumns={2}
-            columnWrapperStyle={styles.columnWrapper}
-            contentContainerStlye={styles.listContent}
-            style={styles.list}
-            showsVerticalScrollIndicator={false}
-          />
-        )}
-      </ScrollView>
+          </ScrollView>
+        </>
+      ) : (
+        <FlatList
+          key='favorites-grid'
+          data={favorites}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          numColumns={2}
+          columnWrapperStyle={styles.columnWrapper}
+          contentContainerStlye={styles.listContent}
+          style={styles.list}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              colors={['#2563EB']}
+            />
+          }
+        />
+      )}
     </ThemedView>
   );
 };

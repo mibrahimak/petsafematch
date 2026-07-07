@@ -7,8 +7,8 @@ import {
   Pressable,
 } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
-import ThemedText from '../../components/ThemedText';
 import { FontAwesome } from '@expo/vector-icons';
+import ThemedText from '../../components/ThemedText';
 
 const FavoriteButton = memo(function FavoriteButton({ isFavorite, onPress }) {
   return (

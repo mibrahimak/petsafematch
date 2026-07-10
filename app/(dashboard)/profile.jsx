@@ -82,9 +82,15 @@ const Profile = () => {
 
   const menuItems = [
     {
+      id: 'edit-profile',
+      title: 'Profili Düzenle',
+      icon: 'person-outline',
+      action: () => console.log('Profil Düzenle'),
+    },
+    {
       id: 'my-listings',
       title: 'İlanlarım',
-      icon: 'paw-outline',
+      icon: 'list-outline',
       action: () => router.push('/mylistings'),
     },
     {
@@ -93,11 +99,12 @@ const Profile = () => {
       icon: 'heart-outline',
       action: () => router.push('/favorites'),
     },
+
     {
-      id: 'edit-profile',
-      title: 'Profili Düzenle',
-      icon: 'person-outline',
-      action: () => console.log('Profil Düzenle'),
+      id: 'patili-dostlar',
+      title: 'Patili Dostlarım',
+      icon: 'paw-outline',
+      action: () => router.push('/(profile)/my-pets'),
     },
     {
       id: 'settings',

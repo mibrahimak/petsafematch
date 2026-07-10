@@ -17,7 +17,7 @@ import ThemedText from './ThemedText';
 import { AuthContext } from '../contexts/AuthContext';
 
 const CustomHeader = () => {
-  const { profile } = useContext(AuthContext);
+  const { profile, index } = useContext(AuthContext);
 
   const { colors } = useTheme();
   const router = useRouter();
@@ -45,7 +45,9 @@ const CustomHeader = () => {
         </Pressable>
 
         <View style={styles.logoContainer}>
-          <AppLogo size={44} />
+          <Pressable onPress={() => router.push('/(dashboard)')}>
+            <AppLogo size={44} />
+          </Pressable>
         </View>
 
         <View style={styles.actionIcons}>
@@ -83,9 +85,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-
     paddingHorizontal: 16,
-
     width: '100%',
   },
   avatar: {
@@ -101,7 +101,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 10,
     elevation: 10,
-    pointerEvents: 'none',
   },
   actionIcons: {
     flexDirection: 'row',

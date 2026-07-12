@@ -26,6 +26,7 @@ const LayoutContent = () => {
           name='(profile)'
           options={{ headerShown: true, header: () => <CustomHeader /> }}
         />
+        <Stack.Screen name='messages' options={{ headerShown: false }} />
       </Stack>
     </>
   );

@@ -336,20 +336,22 @@ export default function CreateListingModal({
               <Text style={styles.errorText}>{formik.errors.description}</Text>
             )}
 
-            <ThemedButton
-              style={[
-                styles.submitButton,
-                { opacity: formik.isSubmitting ? 0.6 : 1 },
-              ]}
-              onPress={formik.handleSubmit}
-              disabled={formik.isSubmitting}
-            >
-              <ThemedText style={styles.buttonText}>
-                {formik.isSubmitting
-                  ? 'Fotoğraf Yükleniyor ve İlan Oluşturuluyor...'
-                  : 'Yayınla'}
-              </ThemedText>
-            </ThemedButton>
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <ThemedButton
+                style={[
+                  styles.submitButton,
+                  { opacity: formik.isSubmitting ? 0.6 : 1 },
+                ]}
+                onPress={formik.handleSubmit}
+                disabled={formik.isSubmitting}
+              >
+                <ThemedText style={styles.buttonText}>
+                  {formik.isSubmitting
+                    ? 'Fotoğraf Yükleniyor ve İlan Oluşturuluyor...'
+                    : 'Yayınla'}
+                </ThemedText>
+              </ThemedButton>
+            </View>
           </ScrollView>
         </ThemedView>
       </KeyboardAvoidingView>
@@ -399,8 +401,10 @@ const styles = StyleSheet.create({
   },
   submitButton: {
     marginTop: 30,
-    borderRadius: 12,
-    paddingVertical: 14,
+    borderRadius: 25,
+    paddingVertical: 12,
+    width: '80%',
+    backgroundColor: '#2563EB',
   },
   buttonText: {
     color: '#FFF',

@@ -56,7 +56,6 @@ export default function MyPets() {
   const [modalVisible, setModalVisible] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // Evcil Hayvanları Çekme
   const fetchMyPets = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
@@ -81,7 +80,6 @@ export default function MyPets() {
     fetchMyPets();
   }, [fetchMyPets]);
 
-  // Fotoğraf Seçme (Formik setFieldValue ile entegre çalışacak)
   const pickImage = async (setFieldValue) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -121,7 +119,6 @@ export default function MyPets() {
     }
   };
 
-  // Form Gönderme İşlemi
   const handleFormSubmit = async (values, { resetForm }) => {
     setUploading(true);
     let uploadedImageUrl = null;
@@ -333,9 +330,7 @@ export default function MyPets() {
                     )}
                   </Pressable>
 
-                  <ThemedText style={styles.inputLabel}>
-                    Dostunuzun Adı
-                  </ThemedText>
+                  <ThemedText style={styles.inputLabel}>Adı</ThemedText>
                   <TextInput
                     style={[
                       styles.input,
@@ -419,7 +414,7 @@ export default function MyPets() {
                     ))}
                   </View>
 
-                  <ThemedText style={styles.inputLabel}>Yaş Dönemi</ThemedText>
+                  <ThemedText style={styles.inputLabel}>Yaş</ThemedText>
                   <View style={styles.chipRowVertical}>
                     {AGE_GROUPS.map((ageGroup) => (
                       <Pressable
@@ -453,7 +448,7 @@ export default function MyPets() {
                       <ActivityIndicator color='#FFF' />
                     ) : (
                       <ThemedText style={styles.saveButtonText}>
-                        Kaydet ve Kapat
+                        Kaydet
                       </ThemedText>
                     )}
                   </ThemedButton>
@@ -593,7 +588,7 @@ const styles = StyleSheet.create({
   },
   chipText: { fontSize: 14, fontWeight: '500', color: '#4B5563' },
   saveButton: { marginTop: 30, borderRadius: 12, paddingVertical: 14 },
-  saveButtonText: { color: '#FFF', fontWeight: '600' },
+  saveButtonText: { color: '#FFF', fontWeight: '600', textAlign: 'center' },
   errorText: {
     color: '#EF4444',
     fontSize: 12,

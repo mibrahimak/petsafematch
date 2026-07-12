@@ -17,7 +17,7 @@ import ThemedText from './ThemedText';
 import { AuthContext } from '../contexts/AuthContext';
 
 const CustomHeader = () => {
-  const { profile, index } = useContext(AuthContext);
+  const { profile } = useContext(AuthContext);
 
   const { colors } = useTheme();
   const router = useRouter();
@@ -44,7 +44,7 @@ const CustomHeader = () => {
           />
         </Pressable>
 
-        <View style={styles.logoContainer}>
+        <View style={styles.logoContainer} pointerEvents='box-none'>
           <Pressable onPress={() => router.push('/(dashboard)')}>
             <AppLogo size={44} />
           </Pressable>
@@ -63,7 +63,7 @@ const CustomHeader = () => {
           </Pressable>
 
           <Pressable
-            onPress={() => console.log('Mesajlar')}
+            onPress={() => router.push('/messages/my-messages')}
             style={styles.iconButton}
           >
             <Feather name='message-circle' size={26} color={colors.title} />

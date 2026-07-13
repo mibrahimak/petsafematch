@@ -40,3 +40,8 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# vscode
+.vscode/
+.vscode/mcp.json
+.github-copilot-instructions.md

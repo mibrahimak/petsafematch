@@ -45,6 +45,7 @@ const petValidationSchema = Yup.object().shape({
   petSpecies: Yup.string().trim().required('Cinsi / Irkı zorunludur.'),
   gender: Yup.string().oneOf(GENDERS).required(),
   age: Yup.string().oneOf(AGE_GROUPS).required(),
+  petImage: Yup.mixed().required('Dostunuzun fotoğrafını eklemek zorunludur.'),
 });
 
 export default function MyPets() {
@@ -119,6 +120,48 @@ export default function MyPets() {
     }
   };
 
+  const handleDeletePet = async (pet) => {
+    Alert.alert(
+      'Emin misiniz?',
+      `${pet.name} dostunuzu silmek istediğinize emin misiniz? Bu işlem geri alınamaz.`,
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Sil',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              // 1. Veritabanından sil
+              const { error } = await supabase
+                .from('user_pets')
+                .delete()
+                .eq('id', pet.id);
+
+              if (error) throw error;
+
+              // 2. Eğer depolanmış bir görsel varsa storage'dan da temizle (İsteğe bağlı temizlik)
+              if (pet.image_url) {
+                const urlParts = pet.image_url.split('/public/pet-photos/');
+                if (urlParts.length > 1) {
+                  const storagePath = urlParts[1];
+                  await supabase.storage
+                    .from('pet-photos')
+                    .remove([storagePath]);
+                }
+              }
+
+              Alert.alert('Başarılı', 'Dostunuz başarıyla silindi.');
+              fetchMyPets();
+            } catch (error) {
+              console.error(error);
+              Alert.alert('Hata', 'Silme işlemi sırasında bir hata oluştu.');
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const handleFormSubmit = async (values, { resetForm }) => {
     setUploading(true);
     let uploadedImageUrl = null;
@@ -157,7 +200,7 @@ export default function MyPets() {
   if (loading) {
     return (
       <ThemedView style={styles.centerContainer}>
-        <ActivityIndicator size='large' color={colors.buttonBg || '#2563EB'} />
+        <ActivityIndicator size='large' color={'#2563EB'} />
       </ThemedView>
     );
   }
@@ -189,7 +232,7 @@ export default function MyPets() {
               style={[
                 styles.petCard,
                 {
-                  backgroundColor: colors.cardBg,
+                  backgroundColor: colors.uiBackground,
                   borderColor: colors.borderColor,
                 },
               ]}
@@ -215,31 +258,33 @@ export default function MyPets() {
                 <Pressable
                   style={[
                     styles.healthButton,
-                    { backgroundColor: colors.buttonBg + '15' },
+                    { backgroundColor: colors.primary + '15' },
                   ]}
                 >
                   <Ionicons
                     name='medical-outline'
                     size={16}
-                    color={colors.buttonBg || '#2563EB'}
+                    color={'#2563EB'}
                   />
-                  <Text
-                    style={[
-                      styles.healthButtonText,
-                      { color: colors.buttonBg || '#2563EB' },
-                    ]}
-                  >
+                  <Text style={[styles.healthButtonText, { color: '#2563EB' }]}>
                     Sağlık Karnesi
                   </Text>
                 </Pressable>
               </View>
+
+              <Pressable
+                style={styles.deleteButton}
+                onPress={() => handleDeletePet(item)}
+              >
+                <Ionicons name='trash-outline' size={20} color='#EF4444' />
+              </Pressable>
             </View>
           )}
         />
       )}
 
       <Pressable
-        style={[styles.fab, { backgroundColor: colors.buttonBg || '#2563EB' }]}
+        style={[styles.fab, { backgroundColor: '#2563EB' }]}
         onPress={() => setModalVisible(true)}
       >
         <Ionicons name='add' size={32} color='#FFF' />
@@ -301,7 +346,12 @@ export default function MyPets() {
                   <Pressable
                     style={[
                       styles.imageSelectArea,
-                      { borderColor: colors.borderColor },
+                      {
+                        borderColor:
+                          errors.petImage && touched.petImage
+                            ? '#EF4444'
+                            : colors.borderColor,
+                      },
                     ]}
                     onPress={() => pickImage(setFieldValue)}
                   >
@@ -315,20 +365,37 @@ export default function MyPets() {
                         <Ionicons
                           name='camera-outline'
                           size={36}
-                          color='#9CA3AF'
+                          color={
+                            errors.petImage && touched.petImage
+                              ? '#EF4444'
+                              : '#9CA3AF'
+                          }
                         />
                         <ThemedText
                           style={{
                             fontSize: 12,
-                            color: '#9CA3AF',
+                            color:
+                              errors.petImage && touched.petImage
+                                ? '#EF4444'
+                                : '#9CA3AF',
                             marginTop: 4,
                           }}
                         >
-                          Fotoğraf Seç
+                          Fotoğraf Seç *
                         </ThemedText>
                       </View>
                     )}
                   </Pressable>
+                  {touched.petImage && errors.petImage && (
+                    <Text
+                      style={[
+                        styles.errorText,
+                        { textAlign: 'center', marginBottom: 10 },
+                      ]}
+                    >
+                      {errors.petImage}
+                    </Text>
+                  )}
 
                   <ThemedText style={styles.inputLabel}>Adı</ThemedText>
                   <TextInput
@@ -354,7 +421,7 @@ export default function MyPets() {
                         style={[
                           styles.chip,
                           values.category === cat && {
-                            backgroundColor: colors.buttonBg || '#2563EB',
+                            backgroundColor: '#2563EB',
                           },
                         ]}
                         onPress={() => setFieldValue('category', cat)}
@@ -397,7 +464,7 @@ export default function MyPets() {
                         style={[
                           styles.chip,
                           values.gender === gen && {
-                            backgroundColor: colors.buttonBg || '#2563EB',
+                            backgroundColor: '#2563EB',
                           },
                         ]}
                         onPress={() => setFieldValue('gender', gen)}
@@ -422,7 +489,7 @@ export default function MyPets() {
                         style={[
                           styles.chipLong,
                           values.age === ageGroup && {
-                            backgroundColor: colors.buttonBg || '#2563EB',
+                            backgroundColor: '#2563EB',
                           },
                         ]}
                         onPress={() => setFieldValue('age', ageGroup)}
@@ -439,19 +506,21 @@ export default function MyPets() {
                     ))}
                   </View>
 
-                  <ThemedButton
-                    style={styles.saveButton}
-                    onPress={handleSubmit}
-                    disabled={uploading}
-                  >
-                    {uploading ? (
-                      <ActivityIndicator color='#FFF' />
-                    ) : (
-                      <ThemedText style={styles.saveButtonText}>
-                        Kaydet
-                      </ThemedText>
-                    )}
-                  </ThemedButton>
+                  <View style={styles.saveButtonWrapper}>
+                    <ThemedButton
+                      style={styles.saveButton}
+                      onPress={handleSubmit}
+                      disabled={uploading}
+                    >
+                      {uploading ? (
+                        <ActivityIndicator color='#FFF' />
+                      ) : (
+                        <ThemedText style={styles.saveButtonText}>
+                          Kaydet
+                        </ThemedText>
+                      )}
+                    </ThemedButton>
+                  </View>
                 </ScrollView>
               </ThemedView>
             </View>
@@ -463,11 +532,27 @@ export default function MyPets() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { paddingHorizontal: 20, paddingTop: 10, marginBottom: 10 },
-  headerTitle: { fontSize: 24, fontWeight: '800' },
-  listContent: { paddingHorizontal: 20, paddingBottom: 100 },
+  container: {
+    flex: 1,
+  },
+  centerContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    marginBottom: 10,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+  },
+  listContent: {
+    paddingHorizontal: 20,
+    paddingBottom: 100,
+  },
   petCard: {
     flexDirection: 'row',
     borderRadius: 16,
@@ -475,14 +560,40 @@ const styles = StyleSheet.create({
     padding: 12,
     marginBottom: 12,
     alignItems: 'center',
+    position: 'relative', // Delete butonu konumlandırması için
   },
-  petImage: { width: 90, height: 90, borderRadius: 12, marginRight: 16 },
-  petDetails: { flex: 1, justifyContent: 'center' },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  petName: { fontSize: 18, fontWeight: '700' },
-  genderIcon: { fontSize: 16 },
-  petMeta: { fontSize: 14, color: '#6B7280', marginTop: 2 },
-  petAge: { fontSize: 12, color: '#9CA3AF', marginTop: 2 },
+  petImage: {
+    width: 90,
+    height: 90,
+    borderRadius: 12,
+    marginRight: 16,
+  },
+  petDetails: {
+    flex: 1,
+    justifyContent: 'center',
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  petName: {
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  genderIcon: {
+    fontSize: 16,
+  },
+  petMeta: {
+    fontSize: 14,
+    color: '#6B7280',
+    marginTop: 2,
+  },
+  petAge: {
+    fontSize: 12,
+    color: '#9CA3AF',
+    marginTop: 2,
+  },
   healthButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -493,7 +604,18 @@ const styles = StyleSheet.create({
     marginTop: 10,
     alignSelf: 'flex-start',
   },
-  healthButtonText: { fontSize: 12, fontWeight: '600' },
+  healthButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: 12,
+    right: 12,
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: '#FEE2E2',
+  },
   fab: {
     position: 'absolute',
     right: 24,
@@ -517,7 +639,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 40,
     marginTop: 100,
   },
-  emptyTitle: { fontSize: 18, fontWeight: '700', marginTop: 16 },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginTop: 16,
+  },
   emptySubtitle: {
     fontSize: 14,
     color: '#6B7280',
@@ -543,8 +669,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 15,
   },
-  modalTitle: { fontSize: 20, fontWeight: '700' },
-  modalScroll: { paddingBottom: 40 },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  modalScroll: {
+    paddingBottom: 40,
+  },
   imageSelectArea: {
     width: 100,
     height: 100,
@@ -557,7 +688,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     marginBottom: 20,
   },
-  selectedImage: { width: '100%', height: '100%' },
+  selectedImage: {
+    width: '100%',
+    height: '100%',
+  },
   inputLabel: {
     fontSize: 14,
     fontWeight: '600',
@@ -571,8 +705,15 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     fontSize: 15,
   },
-  chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chipRowVertical: { flexDirection: 'column', gap: 8 },
+  chipRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 8,
+  },
+  chipRowVertical: {
+    flexDirection: 'column',
+    gap: 8,
+  },
   chip: {
     backgroundColor: '#F3F4F6',
     paddingHorizontal: 16,
@@ -586,13 +727,30 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: 'center',
   },
-  chipText: { fontSize: 14, fontWeight: '500', color: '#4B5563' },
-  saveButton: { marginTop: 30, borderRadius: 12, paddingVertical: 14 },
-  saveButtonText: { color: '#FFF', fontWeight: '600', textAlign: 'center' },
+  chipText: {
+    fontSize: 14,
+    fontWeight: '500',
+    color: '#4B5563',
+  },
+  saveButton: {
+    marginTop: 30,
+    borderRadius: 25,
+    paddingVertical: 12,
+    width: '90%',
+    backgroundColor: '#2563EB',
+  },
+  saveButtonText: {
+    color: '#FFF',
+    fontWeight: '600',
+    textAlign: 'center',
+  },
   errorText: {
     color: '#EF4444',
     fontSize: 12,
     marginTop: 4,
     fontWeight: '500',
+  },
+  saveButtonWrapper: {
+    alignItems: 'center',
   },
 });

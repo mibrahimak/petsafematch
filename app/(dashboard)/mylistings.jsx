@@ -93,7 +93,7 @@ export default function MyListings() {
   if (loading) {
     return (
       <ThemedView style={styles.centerContainer}>
-        <ActivityIndicator size='large' color={colors.buttonBg || '#2563EB'} />
+        <ActivityIndicator size='large' color={'#2563EB'} />
       </ThemedView>
     );
   }

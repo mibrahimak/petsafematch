@@ -287,7 +287,7 @@ export default function MyPets() {
         style={[styles.fab, { backgroundColor: '#2563EB' }]}
         onPress={() => setModalVisible(true)}
       >
-        <Ionicons name='add' size={32} color='#FFF' />
+        <Ionicons name='add' size={30} color='#FFF' />
       </Pressable>
 
       <Formik
@@ -321,209 +321,214 @@ export default function MyPets() {
               resetForm();
             }}
           >
-            <View style={styles.modalOverlay}>
-              <ThemedView style={styles.modalContent}>
-                <View style={styles.modalHeader}>
-                  <ThemedView>
-                    <ThemedText style={styles.modalTitle}>
-                      Yeni Patili Dost Ekle
-                    </ThemedText>
-                  </ThemedView>
-                  <Pressable
-                    onPress={() => {
-                      setModalVisible(false);
-                      resetForm();
-                    }}
-                  >
-                    <Ionicons name='close' size={24} color={colors.text} />
-                  </Pressable>
-                </View>
+            <Pressable
+              style={styles.dismissArea}
+              onPress={() => setModalVisible(false)}
+            >
+              <View style={styles.modalOverlay}>
+                <ThemedView style={styles.modalContent}>
+                  <View style={styles.modalHeader}>
+                    <ThemedView>
+                      <ThemedText style={styles.modalTitle}>
+                        Yeni Patili Dost Ekle
+                      </ThemedText>
+                    </ThemedView>
+                    <Pressable
+                      onPress={() => {
+                        setModalVisible(false);
+                        resetForm();
+                      }}
+                    >
+                      <Ionicons name='close' size={24} color={colors.text} />
+                    </Pressable>
+                  </View>
 
-                <ScrollView
-                  contentContainerStyle={styles.modalScroll}
-                  showsVerticalScrollIndicator={false}
-                >
-                  <Pressable
-                    style={[
-                      styles.imageSelectArea,
-                      {
-                        borderColor:
-                          errors.petImage && touched.petImage
-                            ? '#EF4444'
-                            : colors.borderColor,
-                      },
-                    ]}
-                    onPress={() => pickImage(setFieldValue)}
+                  <ScrollView
+                    contentContainerStyle={styles.modalScroll}
+                    showsVerticalScrollIndicator={false}
                   >
-                    {values.petImage ? (
-                      <Image
-                        source={{ uri: values.petImage.uri }}
-                        style={styles.selectedImage}
-                      />
-                    ) : (
-                      <View style={{ alignItems: 'center' }}>
-                        <Ionicons
-                          name='camera-outline'
-                          size={36}
-                          color={
+                    <Pressable
+                      style={[
+                        styles.imageSelectArea,
+                        {
+                          borderColor:
                             errors.petImage && touched.petImage
                               ? '#EF4444'
-                              : '#9CA3AF'
-                          }
+                              : colors.borderColor,
+                        },
+                      ]}
+                      onPress={() => pickImage(setFieldValue)}
+                    >
+                      {values.petImage ? (
+                        <Image
+                          source={{ uri: values.petImage.uri }}
+                          style={styles.selectedImage}
                         />
-                        <ThemedText
-                          style={{
-                            fontSize: 12,
-                            color:
+                      ) : (
+                        <View style={{ alignItems: 'center' }}>
+                          <Ionicons
+                            name='camera-outline'
+                            size={36}
+                            color={
                               errors.petImage && touched.petImage
                                 ? '#EF4444'
-                                : '#9CA3AF',
-                            marginTop: 4,
-                          }}
-                        >
-                          Fotoğraf Seç *
-                        </ThemedText>
-                      </View>
-                    )}
-                  </Pressable>
-                  {touched.petImage && errors.petImage && (
-                    <Text
-                      style={[
-                        styles.errorText,
-                        { textAlign: 'center', marginBottom: 10 },
-                      ]}
-                    >
-                      {errors.petImage}
-                    </Text>
-                  )}
-
-                  <ThemedText style={styles.inputLabel}>Adı</ThemedText>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { borderColor: colors.borderColor, color: colors.text },
-                    ]}
-                    placeholder='Örn: Pamuk'
-                    placeholderTextColor='#9CA3AF'
-                    onChangeText={handleChange('petName')}
-                    onBlur={handleBlur('petName')}
-                    value={values.petName}
-                  />
-                  {touched.petName && errors.petName && (
-                    <Text style={styles.errorText}>{errors.petName}</Text>
-                  )}
-
-                  <ThemedText style={styles.inputLabel}>Kategori</ThemedText>
-                  <View style={styles.chipRow}>
-                    {CATEGORIES.map((cat) => (
-                      <Pressable
-                        key={cat}
-                        style={[
-                          styles.chip,
-                          values.category === cat && {
-                            backgroundColor: '#2563EB',
-                          },
-                        ]}
-                        onPress={() => setFieldValue('category', cat)}
-                      >
-                        <Text
-                          style={[
-                            styles.chipText,
-                            values.category === cat && { color: '#FFF' },
-                          ]}
-                        >
-                          {cat}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-
-                  <ThemedText style={styles.inputLabel}>
-                    Cinsi / Irkı
-                  </ThemedText>
-                  <TextInput
-                    style={[
-                      styles.input,
-                      { borderColor: colors.borderColor, color: colors.text },
-                    ]}
-                    placeholder='Örn: Tekir, Siyam, Golden'
-                    placeholderTextColor='#9CA3AF'
-                    onChangeText={handleChange('petSpecies')}
-                    onBlur={handleBlur('petSpecies')}
-                    value={values.petSpecies}
-                  />
-                  {touched.petSpecies && errors.petSpecies && (
-                    <Text style={styles.errorText}>{errors.petSpecies}</Text>
-                  )}
-
-                  <ThemedText style={styles.inputLabel}>Cinsiyet</ThemedText>
-                  <View style={styles.chipRow}>
-                    {GENDERS.map((gen) => (
-                      <Pressable
-                        key={gen}
-                        style={[
-                          styles.chip,
-                          values.gender === gen && {
-                            backgroundColor: '#2563EB',
-                          },
-                        ]}
-                        onPress={() => setFieldValue('gender', gen)}
-                      >
-                        <Text
-                          style={[
-                            styles.chipText,
-                            values.gender === gen && { color: '#FFF' },
-                          ]}
-                        >
-                          {gen}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-
-                  <ThemedText style={styles.inputLabel}>Yaş</ThemedText>
-                  <View style={styles.chipRowVertical}>
-                    {AGE_GROUPS.map((ageGroup) => (
-                      <Pressable
-                        key={ageGroup}
-                        style={[
-                          styles.chipLong,
-                          values.age === ageGroup && {
-                            backgroundColor: '#2563EB',
-                          },
-                        ]}
-                        onPress={() => setFieldValue('age', ageGroup)}
-                      >
-                        <Text
-                          style={[
-                            styles.chipText,
-                            values.age === ageGroup && { color: '#FFF' },
-                          ]}
-                        >
-                          {ageGroup}
-                        </Text>
-                      </Pressable>
-                    ))}
-                  </View>
-
-                  <View style={styles.saveButtonWrapper}>
-                    <ThemedButton
-                      style={styles.saveButton}
-                      onPress={handleSubmit}
-                      disabled={uploading}
-                    >
-                      {uploading ? (
-                        <ActivityIndicator color='#FFF' />
-                      ) : (
-                        <ThemedText style={styles.saveButtonText}>
-                          Kaydet
-                        </ThemedText>
+                                : '#9CA3AF'
+                            }
+                          />
+                          <ThemedText
+                            style={{
+                              fontSize: 12,
+                              color:
+                                errors.petImage && touched.petImage
+                                  ? '#EF4444'
+                                  : '#9CA3AF',
+                              marginTop: 4,
+                            }}
+                          >
+                            Fotoğraf Seç *
+                          </ThemedText>
+                        </View>
                       )}
-                    </ThemedButton>
-                  </View>
-                </ScrollView>
-              </ThemedView>
-            </View>
+                    </Pressable>
+                    {touched.petImage && errors.petImage && (
+                      <Text
+                        style={[
+                          styles.errorText,
+                          { textAlign: 'center', marginBottom: 10 },
+                        ]}
+                      >
+                        {errors.petImage}
+                      </Text>
+                    )}
+
+                    <ThemedText style={styles.inputLabel}>Adı</ThemedText>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        { borderColor: colors.borderColor, color: colors.text },
+                      ]}
+                      placeholder='Örn: Pamuk'
+                      placeholderTextColor='#9CA3AF'
+                      onChangeText={handleChange('petName')}
+                      onBlur={handleBlur('petName')}
+                      value={values.petName}
+                    />
+                    {touched.petName && errors.petName && (
+                      <Text style={styles.errorText}>{errors.petName}</Text>
+                    )}
+
+                    <ThemedText style={styles.inputLabel}>Kategori</ThemedText>
+                    <View style={styles.chipRow}>
+                      {CATEGORIES.map((cat) => (
+                        <Pressable
+                          key={cat}
+                          style={[
+                            styles.chip,
+                            values.category === cat && {
+                              backgroundColor: '#2563EB',
+                            },
+                          ]}
+                          onPress={() => setFieldValue('category', cat)}
+                        >
+                          <Text
+                            style={[
+                              styles.chipText,
+                              values.category === cat && { color: '#FFF' },
+                            ]}
+                          >
+                            {cat}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+
+                    <ThemedText style={styles.inputLabel}>
+                      Cinsi / Irkı
+                    </ThemedText>
+                    <TextInput
+                      style={[
+                        styles.input,
+                        { borderColor: colors.borderColor, color: colors.text },
+                      ]}
+                      placeholder='Örn: Tekir, Siyam, Golden'
+                      placeholderTextColor='#9CA3AF'
+                      onChangeText={handleChange('petSpecies')}
+                      onBlur={handleBlur('petSpecies')}
+                      value={values.petSpecies}
+                    />
+                    {touched.petSpecies && errors.petSpecies && (
+                      <Text style={styles.errorText}>{errors.petSpecies}</Text>
+                    )}
+
+                    <ThemedText style={styles.inputLabel}>Cinsiyet</ThemedText>
+                    <View style={styles.chipRow}>
+                      {GENDERS.map((gen) => (
+                        <Pressable
+                          key={gen}
+                          style={[
+                            styles.chip,
+                            values.gender === gen && {
+                              backgroundColor: '#2563EB',
+                            },
+                          ]}
+                          onPress={() => setFieldValue('gender', gen)}
+                        >
+                          <Text
+                            style={[
+                              styles.chipText,
+                              values.gender === gen && { color: '#FFF' },
+                            ]}
+                          >
+                            {gen}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+
+                    <ThemedText style={styles.inputLabel}>Yaş</ThemedText>
+                    <View style={styles.chipRowVertical}>
+                      {AGE_GROUPS.map((ageGroup) => (
+                        <Pressable
+                          key={ageGroup}
+                          style={[
+                            styles.chipLong,
+                            values.age === ageGroup && {
+                              backgroundColor: '#2563EB',
+                            },
+                          ]}
+                          onPress={() => setFieldValue('age', ageGroup)}
+                        >
+                          <Text
+                            style={[
+                              styles.chipText,
+                              values.age === ageGroup && { color: '#FFF' },
+                            ]}
+                          >
+                            {ageGroup}
+                          </Text>
+                        </Pressable>
+                      ))}
+                    </View>
+
+                    <View style={styles.saveButtonWrapper}>
+                      <ThemedButton
+                        style={styles.saveButton}
+                        onPress={handleSubmit}
+                        disabled={uploading}
+                      >
+                        {uploading ? (
+                          <ActivityIndicator color='#FFF' />
+                        ) : (
+                          <ThemedText style={styles.saveButtonText}>
+                            Kaydet
+                          </ThemedText>
+                        )}
+                      </ThemedButton>
+                    </View>
+                  </ScrollView>
+                </ThemedView>
+              </View>
+            </Pressable>
           </Modal>
         )}
       </Formik>
@@ -650,6 +655,9 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: 8,
     lineHeight: 20,
+  },
+  dismissArea: {
+    flex: 1,
   },
   modalOverlay: {
     flex: 1,

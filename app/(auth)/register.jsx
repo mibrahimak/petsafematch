@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import React, { useContext, useState } from 'react';
 import { useRouter } from 'expo-router';
-
+import { Colors } from '../../constants/colors';
 import { AuthContext } from '../../contexts/AuthContext';
 
 // Themed Components
@@ -105,8 +105,13 @@ const Register = () => {
             <ThemedButton onPress={handleSubmit} disabled={isSubmitting}>
               <Text style={styles.buttonText}>Kaydol</Text>
             </ThemedButton>
-            <ThemedButton onPress={linkToLoginScreen}>
-              <Text style={styles.buttonText}>Zaten hesabın mı var?</Text>
+            <ThemedButton
+              style={styles.linkToLoginButton}
+              onPress={linkToLoginScreen}
+            >
+              <Text style={[styles.buttonText, { color: Colors.primary }]}>
+                Zaten hesabın mı var?
+              </Text>
             </ThemedButton>
           </View>
         </ThemedView>
@@ -124,7 +129,7 @@ const styles = StyleSheet.create({
 
   container: {
     flex: 1,
-    justifyContent: 'center', // Üst alan ile alt alanı ekranın iki ucuna yaslar
+    justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: 20,
   },
@@ -148,6 +153,11 @@ const styles = StyleSheet.create({
     gap: 10,
     justifyContent: 'center',
     width: '80%',
+  },
+  linkToLoginButton: {
+    backgroundColor: Colors.backgorund,
+    borderWidth: 2,
+    borderColor: Colors.primary,
   },
   buttonText: {
     color: '#f2f2f2',

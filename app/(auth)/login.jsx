@@ -16,6 +16,7 @@ import ThemedTextInput from '../../components/ThemedTextInput';
 import ThemedButton from '../../components/ThemedButton';
 import ThemedText from '../../components/ThemedText';
 import AppLogo from '../../components/AppLogo';
+import { Colors } from '../../constants/colors';
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -101,8 +102,13 @@ const Login = () => {
             <ThemedButton onPress={handleSubmit} disabled={isSubmitting}>
               <Text style={styles.buttonText}>Giriş Yap</Text>
             </ThemedButton>
-            <ThemedButton onPress={linkToRegisterScreen}>
-              <Text style={styles.buttonText}>Yeni hesap oluştur</Text>
+            <ThemedButton
+              style={styles.linkToRegisterButton}
+              onPress={linkToRegisterScreen}
+            >
+              <Text style={[styles.buttonText, { color: Colors.primary }]}>
+                Yeni hesap oluştur
+              </Text>
             </ThemedButton>
           </View>
         </ThemedView>
@@ -137,6 +143,11 @@ const styles = StyleSheet.create({
     gap: 10,
     justifyContent: 'center',
     width: '80%',
+  },
+  linkToRegisterButton: {
+    backgroundColor: Colors.backgorund,
+    borderWidth: 2,
+    borderColor: Colors.primary,
   },
   buttonText: {
     color: '#f2f2f2',

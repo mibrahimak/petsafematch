@@ -61,6 +61,7 @@ const DashboardLayout = () => {
           title: 'Match',
           tabBarIcon: ({ focused }) => (
             <AppLogo
+              size={28}
               color={focused ? colors.iconColorFocused : colors.iconColor}
             />
           ),

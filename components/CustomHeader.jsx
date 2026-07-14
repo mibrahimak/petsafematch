@@ -46,7 +46,7 @@ const CustomHeader = () => {
 
         <View style={styles.logoContainer} pointerEvents='box-none'>
           <Pressable onPress={() => router.push('/(dashboard)')}>
-            <AppLogo size={44} />
+            <AppLogo size={32} />
           </Pressable>
         </View>
 
@@ -101,6 +101,8 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     zIndex: 10,
     elevation: 10,
+    top: 0,
+    bottom: 0,
   },
   actionIcons: {
     flexDirection: 'row',

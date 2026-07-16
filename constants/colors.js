@@ -1,17 +1,26 @@
 export const Colors = {
   primary: '#5046e5',
-
   warning: '#e05260',
+  onPrimary: '#ffffff',
 
   dark: {
     text: '#94a3b8',
     title: '#f8fafc',
     background: '#0f172a',
     navBackground: '#020617',
-    iconColor: '#475569',
+    iconColor: '#64748b',
     iconColorFocused: '#38bdf8',
     uiBackground: '#1e293b',
-    borderColor: '#2F3336',
+    borderColor: '#334155',
+    link: '#a78bfa',
+    label: '#64748b',
+    socialButtonBg: '#1e293b',
+    inputBorder: '#334155',
+    errorText: '#fca5a5',
+    errorBg: '#3f1d2e',
+    primaryGradientStart: '#7c3aed',
+    primaryGradientEnd: '#5046e5',
+    logoGlow: '#5046e5',
   },
 
   light: {
@@ -23,5 +32,14 @@ export const Colors = {
     iconColorFocused: '#5046e5',
     uiBackground: '#ffffff',
     borderColor: '#E1E8ED',
+    link: '#5046e5',
+    label: '#64748b',
+    socialButtonBg: '#ffffff',
+    inputBorder: '#E1E8ED',
+    errorText: '#e05260',
+    errorBg: '#fde8ea',
+    primaryGradientStart: '#6366f1',
+    primaryGradientEnd: '#5046e5',
+    logoGlow: '#5046e5',
   },
 };

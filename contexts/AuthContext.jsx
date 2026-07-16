@@ -6,6 +6,7 @@ import {
   useCallback,
 } from 'react';
 import { supabase } from '../libs/supabase';
+import { signInWithProvider as oauthSignIn } from '../libs/oauth';
 
 export const AuthContext = createContext();
 
@@ -15,7 +16,7 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
 
-  const fetchProfile = async (userId) => {
+  const fetchProfile = useCallback(async (userId) => {
     try {
       const { data, error } = await supabase
         .from('profiles')
@@ -34,13 +35,13 @@ export const AuthProvider = ({ children }) => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, []);
 
-  const refreshProfile = async () => {
+  const refreshProfile = useCallback(async () => {
     if (user?.id) {
       await fetchProfile(user.id);
     }
-  };
+  }, [user?.id, fetchProfile]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -56,28 +57,31 @@ export const AuthProvider = ({ children }) => {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        setIsLoggedIn(true);
-        setUser(session.user);
-        fetchProfile(session.user.id);
-      } else {
-        setIsLoggedIn(false);
-        setUser(null);
-        setProfile(null);
-        setIsLoading(false);
-      }
+      setTimeout(async () => {
+        if (session) {
+          setIsLoggedIn(true);
+          setUser(session.user);
+          await fetchProfile(session.user.id);
+        } else {
+          setIsLoggedIn(false);
+          setUser(null);
+          setProfile(null);
+          setIsLoading(false);
+        }
+      }, 0);
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [fetchProfile]);
 
-  const register = useCallback(async (email, password, fullName) => {
+  const register = useCallback(async (email, password, fullName, phone) => {
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
         data: {
           full_name: fullName,
+          phone,
         },
       },
     });
@@ -96,6 +100,15 @@ export const AuthProvider = ({ children }) => {
 
   const logout = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
+    if (error) throw error;
+  }, []);
+
+  const signInWithProvider = useCallback(async (provider) => {
+    return oauthSignIn(provider);
+  }, []);
+
+  const resetPassword = useCallback(async (email) => {
+    const { error } = await supabase.auth.resetPasswordForEmail(email);
     if (error) throw error;
   }, []);
 
@@ -122,6 +135,8 @@ export const AuthProvider = ({ children }) => {
       login,
       register,
       logout,
+      signInWithProvider,
+      resetPassword,
       updateProfile,
     };
   }, [
@@ -129,9 +144,12 @@ export const AuthProvider = ({ children }) => {
     isLoading,
     user,
     profile,
+    refreshProfile,
     login,
     register,
     logout,
+    signInWithProvider,
+    resetPassword,
     updateProfile,
   ]);
 

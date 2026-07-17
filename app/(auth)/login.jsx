@@ -24,6 +24,7 @@ import GradientButton from '../../components/auth/GradientButton';
 import SocialAuthButton from '../../components/auth/SocialAuthButton';
 import AuthDivider from '../../components/auth/AuthDivider';
 import { useTheme } from '../../hooks/useTheme';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const REMEMBER_EMAIL_KEY = '@auth/remember_email';
 
@@ -35,7 +36,7 @@ const loginSchema = yup.object({
     .required('E-posta adresi gerekli'),
   password: yup
     .string()
-    .min(6, 'Şifre en az 6 karakter olmalı')
+    .min(8, 'Şifre en az 8 karakter olmalı')
     .required('Şifre gerekli'),
 });
 
@@ -159,168 +160,148 @@ const Login = () => {
   const isBusy = formik.isSubmitting || isOAuthLoading;
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={styles.flexContainer}
-    >
-      <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
-        <ThemedView style={styles.container} safe={true}>
-          <ScrollView
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps='handled'
-            showsVerticalScrollIndicator={false}
+    <ThemedView style={styles.container} safe={true}>
+      <KeyboardAwareScrollView
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps='handled'
+        showsVerticalScrollIndicator={false}
+        enableOnAndroid={true}
+        extraScrollHeight={20}
+      >
+        <View
+          style={[
+            styles.logoContainer,
+            {
+              backgroundColor: colors.uiBackground,
+              shadowColor: colors.logoGlow,
+            },
+          ]}
+        >
+          <AppLogo size={56} />
+        </View>
+
+        <ThemedText title style={styles.headline}>
+          Tekrar hoş geldin
+        </ThemedText>
+        <ThemedText style={styles.subtitle}>
+          Kaldığın yerden devam etmek için giriş yap.
+        </ThemedText>
+
+        <AuthTextField
+          label='E-posta'
+          leftIcon='mail-outline'
+          placeholder='ornek@email.com'
+          keyboardType='email-address'
+          autoCapitalize='none'
+          autoCorrect={false}
+          value={formik.values.email}
+          onChangeText={formik.handleChange('email')}
+          onBlur={formik.handleBlur('email')}
+          error={
+            formik.touched.email && formik.errors.email
+              ? formik.errors.email
+              : undefined
+          }
+        />
+
+        <AuthTextField
+          label='Şifre'
+          leftIcon='lock-closed-outline'
+          rightIcon={showPassword ? 'eye-off-outline' : 'eye-outline'}
+          onRightIconPress={handleTogglePassword}
+          placeholder='Şifreniz'
+          secureTextEntry={!showPassword}
+          value={formik.values.password}
+          onChangeText={formik.handleChange('password')}
+          onBlur={formik.handleBlur('password')}
+          error={
+            formik.touched.password && formik.errors.password
+              ? formik.errors.password
+              : undefined
+          }
+        />
+
+        {formError ? (
+          <View
+            style={[
+              styles.formError,
+              {
+                backgroundColor: colors.errorBg,
+                borderColor: colors.errorText,
+              },
+            ]}
+          >
+            <ThemedText style={{ color: colors.errorText }}>
+              {formError}
+            </ThemedText>
+          </View>
+        ) : null}
+
+        <View style={styles.optionsRow}>
+          <Pressable
+            style={styles.rememberRow}
+            onPress={handleToggleRememberMe}
           >
             <View
               style={[
-                styles.logoContainer,
+                styles.checkbox,
                 {
-                  backgroundColor: colors.uiBackground,
-                  shadowColor: colors.logoGlow,
+                  borderColor: rememberMe ? colors.primary : colors.borderColor,
+                  backgroundColor: rememberMe ? colors.primary : 'transparent',
                 },
               ]}
             >
-              <AppLogo size={56} />
+              {rememberMe ? (
+                <Ionicons name='checkmark' size={14} color={colors.onPrimary} />
+              ) : null}
             </View>
+            <ThemedText style={styles.rememberText}>Beni hatırla</ThemedText>
+          </Pressable>
 
-            <ThemedText title style={styles.headline}>
-              Tekrar hoş geldin
+          <Pressable onPress={handleForgotPassword}>
+            <ThemedText style={[styles.forgotText, { color: colors.link }]}>
+              Şifremi unuttum?
             </ThemedText>
-            <ThemedText style={styles.subtitle}>
-              Kaldığın yerden devam etmek için giriş yap.
+          </Pressable>
+        </View>
+
+        <GradientButton
+          label='Giriş Yap'
+          onPress={formik.handleSubmit}
+          disabled={isBusy}
+        />
+
+        <AuthDivider />
+
+        <View style={styles.socialRow}>
+          <SocialAuthButton
+            provider='google'
+            onPress={() => handleSocialSignIn('google')}
+            disabled={isBusy}
+          />
+          <SocialAuthButton
+            provider='apple'
+            onPress={() => handleSocialSignIn('apple')}
+            disabled={isBusy}
+          />
+        </View>
+
+        <View style={styles.footer}>
+          <ThemedText style={styles.footerText}>Hesabın yok mu? </ThemedText>
+          <Pressable onPress={handleLinkToRegister} hitSlop={20}>
+            <ThemedText style={[styles.footerLink, { color: colors.link }]}>
+              Hesap oluştur
             </ThemedText>
-
-            <AuthTextField
-              label='E-posta'
-              leftIcon='mail-outline'
-              placeholder='ornek@email.com'
-              keyboardType='email-address'
-              autoCapitalize='none'
-              autoCorrect={false}
-              value={formik.values.email}
-              onChangeText={formik.handleChange('email')}
-              onBlur={formik.handleBlur('email')}
-              error={
-                formik.touched.email && formik.errors.email
-                  ? formik.errors.email
-                  : undefined
-              }
-            />
-
-            <AuthTextField
-              label='Şifre'
-              leftIcon='lock-closed-outline'
-              rightIcon={showPassword ? 'eye-off-outline' : 'eye-outline'}
-              onRightIconPress={handleTogglePassword}
-              placeholder='Şifreniz'
-              secureTextEntry={!showPassword}
-              value={formik.values.password}
-              onChangeText={formik.handleChange('password')}
-              onBlur={formik.handleBlur('password')}
-              error={
-                formik.touched.password && formik.errors.password
-                  ? formik.errors.password
-                  : undefined
-              }
-            />
-
-            {formError ? (
-              <View
-                style={[
-                  styles.formError,
-                  {
-                    backgroundColor: colors.errorBg,
-                    borderColor: colors.errorText,
-                  },
-                ]}
-              >
-                <ThemedText style={{ color: colors.errorText }}>
-                  {formError}
-                </ThemedText>
-              </View>
-            ) : null}
-
-            <View style={styles.optionsRow}>
-              <Pressable
-                style={styles.rememberRow}
-                onPress={handleToggleRememberMe}
-              >
-                <View
-                  style={[
-                    styles.checkbox,
-                    {
-                      borderColor: rememberMe
-                        ? colors.primary
-                        : colors.borderColor,
-                      backgroundColor: rememberMe
-                        ? colors.primary
-                        : 'transparent',
-                    },
-                  ]}
-                >
-                  {rememberMe ? (
-                    <Ionicons
-                      name='checkmark'
-                      size={14}
-                      color={colors.onPrimary}
-                    />
-                  ) : null}
-                </View>
-                <ThemedText style={styles.rememberText}>
-                  Beni hatırla
-                </ThemedText>
-              </Pressable>
-
-              <Pressable onPress={handleForgotPassword}>
-                <ThemedText style={[styles.forgotText, { color: colors.link }]}>
-                  Şifremi unuttum?
-                </ThemedText>
-              </Pressable>
-            </View>
-
-            <GradientButton
-              label='Giriş Yap'
-              onPress={formik.handleSubmit}
-              disabled={isBusy}
-            />
-
-            <AuthDivider />
-
-            <View style={styles.socialRow}>
-              <SocialAuthButton
-                provider='google'
-                onPress={() => handleSocialSignIn('google')}
-                disabled={isBusy}
-              />
-              <SocialAuthButton
-                provider='apple'
-                onPress={() => handleSocialSignIn('apple')}
-                disabled={isBusy}
-              />
-            </View>
-
-            <View style={styles.footer}>
-              <ThemedText style={styles.footerText}>
-                Hesabın yok mu?{' '}
-              </ThemedText>
-              <Pressable onPress={handleLinkToRegister}>
-                <ThemedText style={[styles.footerLink, { color: colors.link }]}>
-                  Hesap oluştur
-                </ThemedText>
-              </Pressable>
-            </View>
-          </ScrollView>
-        </ThemedView>
-      </TouchableWithoutFeedback>
-    </KeyboardAvoidingView>
+          </Pressable>
+        </View>
+      </KeyboardAwareScrollView>
+    </ThemedView>
   );
 };
 
 export default Login;
 
 const styles = StyleSheet.create({
-  flexContainer: {
-    flex: 1,
-  },
   container: {
     flex: 1,
   },
@@ -398,7 +379,8 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 28,
+    marginTop: 0,
+    height: 80,
   },
   footerText: {
     fontSize: 14,

@@ -151,7 +151,7 @@ const Profile = () => {
                 name={isDark ? 'moon-outline' : 'sunny-outline'}
                 size={22}
                 color={colors.textColor}
-                style={[styles.menuIcon, { color: '#2563EB' }]}
+                style={[styles.menuIcon, { color: colors.title }]}
               />
               <ThemedText style={styles.menuItemText}>
                 {isDark ? 'Karanlık Mod' : 'Aydınlık Mod'}
@@ -180,7 +180,7 @@ const Profile = () => {
                   name={item.icon}
                   size={22}
                   color={colors.textColor}
-                  style={[styles.menuIcon, { color: '#2563EB' }]}
+                  style={[styles.menuIcon, { color: colors.title }]}
                 />
                 <ThemedText style={styles.menuItemText}>
                   {item.title}

@@ -14,14 +14,15 @@ import {
   Text,
   ScrollView,
   RefreshControl,
+  Alert,
 } from 'react-native';
 import { useFavoriteStore } from '../../src/store/useFavoriteStore';
-import { ScrollContext } from '../../contexts/ScrollContext';
 import { usePetStore } from '../../src/store/usePetStore';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRefresh } from '../../hooks/useRefresh';
+import { AuthContext } from '../../contexts/AuthContext';
 
 import CreateListingModal from '../../components/CreateListingModal';
 import ThemedView from '../../components/ThemedView';
@@ -61,6 +62,7 @@ const HomeScreen = () => {
   const [searchQuery, setSearchQuery] = useState();
   const [modalVisible, setModalVisible] = useState(false);
 
+  const { user } = useContext(AuthContext);
   const { colors } = useTheme();
   const { refreshing, onRefresh } = useRefresh();
 
@@ -104,15 +106,20 @@ const HomeScreen = () => {
     []
   );
 
-  const handleFavoritePress = useCallback((petId) => {
-    setFavorites((prevFavorites) => {
-      if (prevFavorites.includes(petId)) {
-        return prevFavorites.filter((id) => id !== petId);
-      } else {
-        return [...prevFavorites, petId];
+  const handleFavoritePress = useCallback(
+    (petId) => {
+      if (!user?.id) {
+        Alert.alert(
+          'Giriş gerekli',
+          'Favorilere eklemek için giriş yapmalısınız.'
+        );
+        router.push('/(auth)/login');
+        return;
       }
-    });
-  }, []);
+      toggleFavorite(petId, user.id);
+    },
+    [user?.id, toggleFavorite, router]
+  );
 
   return (
     <ThemedView style={styles.container}>
@@ -150,7 +157,7 @@ const HomeScreen = () => {
             <PetCard
               pet={item}
               isFavorite={isCardFavorite}
-              onFavoritePress={() => toggleFavorite(item.id)}
+              onFavoritePress={() => handleFavoritePress(item.id)}
               onPress={() =>
                 router.push({ pathname: '/ilan/[id]', params: { id: item.id } })
               }

@@ -27,6 +27,7 @@ const LayoutContent = () => {
           options={{ headerShown: true, header: () => <CustomHeader /> }}
         />
         <Stack.Screen name='messages' options={{ headerShown: false }} />
+        <Stack.Screen name='notifications' options={{ headerShown: false }} />
       </Stack>
     </>
   );

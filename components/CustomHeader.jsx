@@ -14,6 +14,8 @@ import { Ionicons, Feather } from '@expo/vector-icons';
 import AppLogo from './AppLogo';
 import ThemedView from './ThemedView';
 import ThemedText from './ThemedText';
+import NotificationBadge from './NotificationBadge';
+import MessageBadge from './MessageBadge';
 import { AuthContext } from '../contexts/AuthContext';
 
 const CustomHeader = () => {
@@ -52,21 +54,27 @@ const CustomHeader = () => {
 
         <View style={styles.actionIcons}>
           <Pressable
-            onPress={() => console.log('Bildirimler')}
+            onPress={() => router.push('/notifications')}
             style={styles.iconButton}
           >
-            <Ionicons
-              name='notifications-outline'
-              size={26}
-              color={colors.title}
-            />
+            <View>
+              <Ionicons
+                name='notifications-outline'
+                size={26}
+                color={colors.title}
+              />
+              <NotificationBadge />
+            </View>
           </Pressable>
 
           <Pressable
             onPress={() => router.push('/messages/my-messages')}
             style={styles.iconButton}
           >
-            <Feather name='message-circle' size={26} color={colors.title} />
+            <View>
+              <Feather name='message-circle' size={26} color={colors.title} />
+              <MessageBadge />
+            </View>
           </Pressable>
         </View>
       </View>

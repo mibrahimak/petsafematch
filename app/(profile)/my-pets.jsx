@@ -260,6 +260,7 @@ export default function MyPets() {
                     styles.healthButton,
                     { backgroundColor: colors.primary + '15' },
                   ]}
+                  onPress={() => console.log('Sağlık Karnesine Tıklandı!')}
                 >
                   <Ionicons
                     name='medical-outline'

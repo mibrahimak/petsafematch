@@ -132,7 +132,7 @@ export default function MyListings() {
             style={[
               styles.card,
               {
-                backgroundColor: colors.cardBg,
+                backgroundColor: colors.uiBackground,
                 borderColor: colors.borderColor,
               },
             ]}

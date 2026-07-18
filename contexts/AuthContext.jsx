@@ -7,6 +7,9 @@ import {
 } from 'react';
 import { supabase } from '../libs/supabase';
 import { signInWithProvider as oauthSignIn } from '../libs/oauth';
+import { useFavoriteStore } from '../src/store/useFavoriteStore';
+import { useNotificationStore } from '../src/store/useNotificationStore';
+import { useMessagingStore } from '../src/store/useMessagingStore';
 
 export const AuthContext = createContext();
 
@@ -43,12 +46,29 @@ export const AuthProvider = ({ children }) => {
     }
   }, [user?.id, fetchProfile]);
 
+  const syncUserData = useCallback(async (userId) => {
+    await Promise.all([
+      useFavoriteStore.getState().fetchFavorites(userId),
+      useNotificationStore.getState().fetchNotifications(userId),
+      useMessagingStore.getState().fetchUnreadCount(userId),
+    ]);
+    useNotificationStore.getState().subscribeToNotifications(userId);
+    useMessagingStore.getState().subscribeToMessages(userId);
+  }, []);
+
+  const clearUserData = useCallback(() => {
+    useFavoriteStore.getState().clearFavorites();
+    useNotificationStore.getState().unsubscribeFromNotifications();
+    useMessagingStore.getState().unsubscribeFromMessages();
+  }, []);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
         setIsLoggedIn(true);
         setUser(session.user);
         fetchProfile(session.user.id);
+        syncUserData(session.user.id);
       } else {
         setIsLoading(false);
       }
@@ -62,17 +82,19 @@ export const AuthProvider = ({ children }) => {
           setIsLoggedIn(true);
           setUser(session.user);
           await fetchProfile(session.user.id);
+          await syncUserData(session.user.id);
         } else {
           setIsLoggedIn(false);
           setUser(null);
           setProfile(null);
+          clearUserData();
           setIsLoading(false);
         }
       }, 0);
     });
 
     return () => subscription.unsubscribe();
-  }, [fetchProfile]);
+  }, [fetchProfile, syncUserData, clearUserData]);
 
   const register = useCallback(async (email, password, fullName, phone) => {
     const { data, error } = await supabase.auth.signUp({
@@ -101,7 +123,8 @@ export const AuthProvider = ({ children }) => {
   const logout = useCallback(async () => {
     const { error } = await supabase.auth.signOut();
     if (error) throw error;
-  }, []);
+    clearUserData();
+  }, [clearUserData]);
 
   const signInWithProvider = useCallback(async (provider) => {
     return oauthSignIn(provider);

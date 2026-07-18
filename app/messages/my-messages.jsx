@@ -100,11 +100,14 @@ const MessagesList = () => {
       >
         <Image source={{ uri: avatarUrl }} style={styles.avatar} />
         <View style={styles.textWrapper}>
-          <ThemedText style={styles.name}>{fullName}</ThemedText>
+          <ThemedText style={[styles.name, { color: colors.title }]}>
+            {fullName}
+          </ThemedText>
           <ThemedText
             style={[
               styles.preview,
               isUnread && { fontWeight: '700', color: colors.title },
+              { color: colors.title },
             ]}
             numberOfLines={1}
           >

@@ -1,10 +1,11 @@
-import { Stack, useLocalSearchParams } from 'expo-router';
+import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
+import { useCallback, useContext } from 'react';
 import { useFavoriteStore } from '../../src/store/useFavoriteStore';
 import { usePetStore } from '../../src/store/usePetStore';
-import * as Linking from 'expo-linking';
-import { Pressable, StyleSheet, View, ScrollView, Image } from 'react-native';
+import { Alert, Pressable, StyleSheet, View, ScrollView, Image } from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
+import { AuthContext } from '../../contexts/AuthContext';
 
 import ThemedView from '../../components/ThemedView';
 import ThemedText from '../../components/ThemedText';
@@ -12,6 +13,8 @@ import ThemedButton from '../../components/ThemedButton';
 
 export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams();
+  const router = useRouter();
+  const { user } = useContext(AuthContext);
   const favorites = useFavoriteStore((state) => state.favorites);
   const toggleFavorite = useFavoriteStore((state) => state.toggleFavorite);
   const pets = usePetStore((state) => state.pets);
@@ -21,13 +24,34 @@ export default function ListingDetailScreen() {
   const pet = pets.find((item) => String(item.id) === String(id));
   const isFavorite = favorites.includes(pet?.id);
 
-  const contactOwner = async () => {
-    const phoneUrl = 'tel: +905551112233';
-    const whatsappUrl =
-      'https://wa.me/905551112233?text=Merhaba%20ilaninizla%20ilgileniyorum.';
-    const canOpenWhatsapp = await Linking.canOpenURL(whatsappUrl);
-    await Linking.openURL(canOpenWhatsapp ? whatsappUrl : phoneUrl);
-  };
+  const handleFavoritePress = useCallback(() => {
+    if (!user?.id) {
+      Alert.alert(
+        'Giriş gerekli',
+        'Favorilere eklemek için giriş yapmalısınız.'
+      );
+      router.push('/(auth)/login');
+      return;
+    }
+    toggleFavorite(pet.id, user.id);
+  }, [user?.id, pet?.id, toggleFavorite, router]);
+
+  const handleContactOwner = useCallback(() => {
+    if (!user?.id) {
+      Alert.alert('Giriş gerekli', 'Mesaj göndermek için giriş yapmalısınız.');
+      router.push('/(auth)/login');
+      return;
+    }
+    if (!pet?.userId) {
+      Alert.alert('Hata', 'İlan sahibi bilgisi bulunamadı.');
+      return;
+    }
+    if (pet.userId === user.id) {
+      Alert.alert('Uyarı', 'Kendi ilanınıza mesaj gönderemezsiniz.');
+      return;
+    }
+    router.push(`/messages/${pet.userId}`);
+  }, [user?.id, pet?.userId, router]);
 
   if (!pet) {
     return (
@@ -64,10 +88,7 @@ export default function ListingDetailScreen() {
         <View style={styles.titleRow}>
           <ThemedText style={styles.title}>{pet.name}</ThemedText>
 
-          <Pressable
-            style={styles.favoriteButton}
-            onPress={() => toggleFavorite(pet.id)}
-          >
+          <Pressable style={styles.favoriteButton} onPress={handleFavoritePress}>
             <FontAwesome
               name={isFavorite ? 'heart' : 'heart-o'}
               size={18}
@@ -90,7 +111,7 @@ export default function ListingDetailScreen() {
           {pet.description}
         </ThemedText>
 
-        <ThemedButton style={styles.contactButton} onPress={contactOwner}>
+        <ThemedButton style={styles.contactButton} onPress={handleContactOwner}>
           <ThemedText style={styles.contactButtonText}>
             Sahibiyle İletişime Geç
           </ThemedText>

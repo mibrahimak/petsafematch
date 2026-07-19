@@ -2,7 +2,14 @@ import { Stack, useLocalSearchParams, useRouter } from 'expo-router';
 import { useCallback, useContext } from 'react';
 import { useFavoriteStore } from '../../src/store/useFavoriteStore';
 import { usePetStore } from '../../src/store/usePetStore';
-import { Alert, Pressable, StyleSheet, View, ScrollView, Image } from 'react-native';
+import {
+  Alert,
+  Pressable,
+  StyleSheet,
+  View,
+  ScrollView,
+  Image,
+} from 'react-native';
 import { FontAwesome } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { AuthContext } from '../../contexts/AuthContext';
@@ -88,7 +95,10 @@ export default function ListingDetailScreen() {
         <View style={styles.titleRow}>
           <ThemedText style={styles.title}>{pet.name}</ThemedText>
 
-          <Pressable style={styles.favoriteButton} onPress={handleFavoritePress}>
+          <Pressable
+            style={styles.favoriteButton}
+            onPress={handleFavoritePress}
+          >
             <FontAwesome
               name={isFavorite ? 'heart' : 'heart-o'}
               size={18}
@@ -127,6 +137,7 @@ const styles = StyleSheet.create({
   },
   content: {
     padding: 24,
+    flexGrow: 1,
   },
   centerContainer: {
     flex: 1,

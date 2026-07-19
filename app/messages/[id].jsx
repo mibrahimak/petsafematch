@@ -269,36 +269,16 @@ const ChatScreen = () => {
           styles.bubble,
 
           isMine
-            ? [
-                styles.bubbleMine,
-
-                { backgroundColor: colors.primary || '#2B62E5' },
-              ]
-            : [
-                styles.bubbleTheirs,
-
-                { backgroundColor: colors.uiBackground || '#1F1F1F' },
-              ],
+            ? [styles.bubbleMine, { backgroundColor: colors.primary }]
+            : [styles.bubbleTheirs, { backgroundColor: '#1e293b' }],
         ]}
       >
-        <ThemedText
-          style={
-            isMine
-              ? [styles.textMine]
-              : [styles.textTheirs, { color: colors.title }]
-          }
-        >
+        <ThemedText style={isMine ? [styles.textMine] : [styles.textTheirs]}>
           {item.content}
         </ThemedText>
 
         <View style={styles.metaRow}>
-          <ThemedText
-            style={[
-              styles.metaText,
-              { color: colors.title },
-              isMine && [styles.metaTextMine, { color: colors.uiBackground }],
-            ]}
-          >
+          <ThemedText style={styles.metaText}>
             {formatMessageTime(item.created_at)}
           </ThemedText>
 
@@ -309,10 +289,6 @@ const ChatScreen = () => {
                 size={14}
                 color={item.is_read ? '#A5F3FC' : 'rgba(255,255,255,0.7)'}
               />
-
-              <ThemedText style={[styles.metaText, styles.metaTextMine]}>
-                {item.is_read ? ' ' : ' '}
-              </ThemedText>
             </View>
           )}
         </View>
@@ -425,7 +401,7 @@ const styles = StyleSheet.create({
 
   textMine: { color: '#FFF', fontSize: 15, fontWeight: 'bold' },
 
-  textTheirs: { fontSize: 15, fontWeight: 'bold' },
+  textTheirs: { color: '#FFF', fontSize: 15, fontWeight: 'bold' },
 
   metaRow: {
     flexDirection: 'row',
@@ -444,10 +420,11 @@ const styles = StyleSheet.create({
   metaText: {
     fontSize: 11,
     fontWeight: 'bold',
+    color: '#94a3b8',
   },
 
   metaTextMine: {
-    color: '#FFFFFF',
+    color: '#94a3b8',
   },
 
   readStatus: {

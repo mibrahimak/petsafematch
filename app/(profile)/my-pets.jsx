@@ -53,33 +53,87 @@ export default function MyPets() {
   const { colors } = useTheme();
 
   const [pets, setPets] = useState([]);
+  const [matchPetIds, setMatchPetIds] = useState(new Set());
   const [loading, setLoading] = useState(true);
   const [modalVisible, setModalVisible] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [joiningMatchId, setJoiningMatchId] = useState(null);
+
+  const fetchMatchEnrollments = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('match_mypet')
+        .select('pet_id')
+        .eq('userId', user.id);
+
+      if (error) throw error;
+      setMatchPetIds(new Set((data || []).map((row) => row.pet_id)));
+    } catch (error) {
+      console.error(
+        '[fetchMatchEnrollments] Eşleştirme kayıtları alınamadı:',
+        error
+      );
+    }
+  }, [user?.id]);
 
   const fetchMyPets = useCallback(async () => {
     if (!user?.id) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('user_pets')
-        .select('*')
-        .eq('userId', user.id)
-        .order('created_at', { ascending: false });
+      const [petsResult] = await Promise.all([
+        supabase
+          .from('user_pets')
+          .select('*')
+          .eq('userId', user.id)
+          .order('created_at', { ascending: false }),
+        fetchMatchEnrollments(),
+      ]);
 
+      const { data, error } = petsResult;
       if (error) throw error;
       setPets(data || []);
     } catch (error) {
-      console.error(error);
+      console.error('[fetchMyPets] Can dostlar listelenirken hata:', error);
       Alert.alert('Hata', 'Can dostlarınız listelenirken bir sorun oluştu.');
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user?.id, fetchMatchEnrollments]);
 
   useEffect(() => {
     fetchMyPets();
   }, [fetchMyPets]);
+
+  const handleJoinMatch = async (pet) => {
+    if (matchPetIds.has(pet.id)) return;
+
+    setJoiningMatchId(pet.id);
+    try {
+      const { error } = await supabase.from('match_mypet').insert({
+        pet_id: pet.id,
+        userId: user.id,
+      });
+
+      if (error) {
+        if (error.code === '23505') {
+          Alert.alert('Bilgi', 'Bu dost zaten eşleştirmede.');
+          await fetchMatchEnrollments();
+          return;
+        }
+        throw error;
+      }
+
+      setMatchPetIds((prev) => new Set([...prev, pet.id]));
+      Alert.alert('Başarılı', `${pet.name} eşleştirmeye katıldı!`);
+    } catch (error) {
+      console.error('[handleJoinMatch] Eşleştirmeye katılırken hata:', error);
+      Alert.alert('Hata', 'Eşleştirmeye katılırken bir sorun oluştu.');
+    } finally {
+      setJoiningMatchId(null);
+    }
+  };
 
   const pickImage = async (setFieldValue) => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -251,26 +305,71 @@ export default function MyPets() {
                   </Text>
                 </View>
                 <ThemedText style={styles.petMeta}>
-                  {item.category} • {item.species}
+                  {item.category} • {item.species} • {item.gender}
                 </ThemedText>
                 <ThemedText style={styles.petAge}>{item.age}</ThemedText>
 
-                <Pressable
-                  style={[
-                    styles.healthButton,
-                    { backgroundColor: colors.primary + '15' },
-                  ]}
-                  onPress={() => console.log('Sağlık Karnesine Tıklandı!')}
-                >
-                  <Ionicons
-                    name='medical-outline'
-                    size={16}
-                    color={'#2563EB'}
-                  />
-                  <Text style={[styles.healthButtonText, { color: '#2563EB' }]}>
-                    Sağlık Karnesi
-                  </Text>
-                </Pressable>
+                <View style={styles.actionRow}>
+                  <Pressable
+                    style={[
+                      styles.healthButton,
+                      { backgroundColor: colors.primary + '15' },
+                    ]}
+                    onPress={() => console.log('Sağlık Karnesine Tıklandı!')}
+                  >
+                    <Ionicons
+                      name='medical-outline'
+                      size={16}
+                      color={'#2563EB'}
+                    />
+                    <Text
+                      style={[styles.healthButtonText, { color: '#2563EB' }]}
+                    >
+                      Sağlık Karnesi
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    style={[
+                      styles.matchButton,
+                      matchPetIds.has(item.id)
+                        ? { backgroundColor: '#D1FAE5' }
+                        : { backgroundColor: '#FCE7F3' },
+                    ]}
+                    onPress={() => handleJoinMatch(item)}
+                    disabled={
+                      matchPetIds.has(item.id) || joiningMatchId === item.id
+                    }
+                  >
+                    {joiningMatchId === item.id ? (
+                      <ActivityIndicator size='small' color='#10B981' />
+                    ) : (
+                      <>
+                        <Ionicons
+                          name={
+                            matchPetIds.has(item.id) ? 'heart' : 'heart-outline'
+                          }
+                          size={16}
+                          color={
+                            matchPetIds.has(item.id) ? '#10B981' : '#EC4899'
+                          }
+                        />
+                        <Text
+                          style={[
+                            styles.matchButtonText,
+                            {
+                              color: matchPetIds.has(item.id)
+                                ? '#10B981'
+                                : '#EC4899',
+                            },
+                          ]}
+                        >
+                          {matchPetIds.has(item.id) ? 'Eşleştir' : 'Eşleştir'}
+                        </Text>
+                      </>
+                    )}
+                  </Pressable>
+                </View>
               </View>
 
               <Pressable
@@ -572,7 +671,7 @@ const styles = StyleSheet.create({
     width: 90,
     height: 90,
     borderRadius: 12,
-    marginRight: 16,
+    marginRight: 8,
   },
   petDetails: {
     flex: 1,
@@ -600,6 +699,11 @@ const styles = StyleSheet.create({
     color: '#9CA3AF',
     marginTop: 2,
   },
+  actionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginTop: 10,
+  },
   healthButton: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -607,10 +711,20 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 8,
-    marginTop: 10,
-    alignSelf: 'flex-start',
   },
   healthButtonText: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  matchButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+  },
+  matchButtonText: {
     fontSize: 12,
     fontWeight: '600',
   },

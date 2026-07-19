@@ -60,7 +60,7 @@ const Match = () => {
         setLoading(false);
       }
     } catch (err) {
-      console.error('Veriler yüklenirken hata:', error);
+      console.error('Veriler yüklenirken hata:', err);
       Alert.alert('Hata', 'Bilgiler yüklenirken bir sorun oluştu.');
       setLoading(false);
     }
@@ -70,16 +70,41 @@ const Match = () => {
     try {
       const targetGender = myPet.gender === 'Erkek' ? 'Dişi' : 'Erkek';
 
-      const { data: listingsData, error: listingsError } = await supabase
-        .from('listings')
-        .select('*')
-        .eq('category', myPet.category)
-        .eq('gender', targetGender)
+      const { data, error } = await supabase
+        .from('match_mypet')
+        .select(
+          `
+          id,
+          userId,
+          pet_id,
+          user_pets!inner (
+            id, name, category, species, gender, age, image_url
+          ),
+          profiles!userId ( city )
+        `
+        )
         .eq('is_active', true)
-        .or(`userId.neq."${user.id}",userId.is.null`);
+        .eq('user_pets.category', myPet.category)
+        .eq('user_pets.gender', targetGender)
+        .neq('userId', user.id);
 
-      if (listingsError) throw listingsError;
-      setMatchCandidates(listingsData || []);
+      if (error) throw error;
+
+      const candidates = (data ?? []).map((row) => ({
+        id: row.user_pets.id,
+        match_mypet_id: row.id,
+        userId: row.userId,
+        name: row.user_pets.name,
+        species: row.user_pets.species,
+        age: row.user_pets.age,
+        gender: row.user_pets.gender,
+        category: row.user_pets.category,
+        image_url: row.user_pets.image_url,
+        location: row.profiles?.city ?? '',
+        description: '',
+      }));
+
+      setMatchCandidates(candidates);
     } catch (err) {
       console.error('Adaylar gelirken hata:', err);
     } finally {
@@ -217,13 +242,17 @@ const Match = () => {
                       </Text>
                     </View>
                     <ThemedText style={styles.cardMeta}>
-                      {card.species} • {card.age} • {card.location}
+                      {[card.species, card.age, card.location]
+                        .filter(Boolean)
+                        .join(' • ')}
                     </ThemedText>
-                    <View style={styles.descriptionRow}>
-                      <ThemedText style={styles.cardLocation}>
-                        {card.description}
-                      </ThemedText>
-                    </View>
+                    {card.description ? (
+                      <View style={styles.descriptionRow}>
+                        <ThemedText style={styles.cardLocation}>
+                          {card.description}
+                        </ThemedText>
+                      </View>
+                    ) : null}
                   </View>
                 </View>
               );
@@ -261,8 +290,8 @@ const Match = () => {
             <ThemedText style={styles.emptyTitle}>Adaylar Tükendi!</ThemedText>
             <ThemedText style={styles.emptySubtitle}>
               {selectedMyPet?.name} için şu an çevrede başka uygun karşı cins{' '}
-              {selectedMyPet?.category} ilanı bulunmuyor. Yeni ilanlar için daha
-              sonra tekrar kontrol edebilirsin!
+              {selectedMyPet?.category} eşleştirmeye katılan dost bulunmuyor.
+              Yeni katılımlar için daha sonra tekrar kontrol edebilirsin!
             </ThemedText>
             <ThemedButton
               style={styles.refreshButton}

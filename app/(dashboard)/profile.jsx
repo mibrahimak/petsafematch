@@ -1,44 +1,112 @@
 import {
-  Platform,
   View,
   StyleSheet,
-  Image,
   Pressable,
   ScrollView,
-  TextInput,
   Alert,
   RefreshControl,
 } from 'react-native';
-import { useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo } from 'react';
+import Constants from 'expo-constants';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useRefresh } from '../../hooks/useRefresh';
+import { useProfileStats } from '../../hooks/useProfileStats';
+import { useNotificationPreferences } from '../../hooks/useNotificationPreferences';
 
 import ThemedView from '../../components/ThemedView';
 import ThemedText from '../../components/ThemedText';
 import ThemedButton from '../../components/ThemedButton';
+import ProfileHeader from '../../components/profile/ProfileHeader';
+import ProfileStatsRow from '../../components/profile/ProfileStatsRow';
+import ProfileSection from '../../components/profile/ProfileSection';
+import ProfileMenuItem from '../../components/profile/ProfileMenuItem';
+import ProfileToggleItem from '../../components/profile/ProfileToggleItem';
+
+const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
 
 const Profile = () => {
-  const { logout, isLoggedIn, profile, user, isLoading } =
+  const { logout, isLoggedIn, profile, user, isLoading, refreshProfile } =
     useContext(AuthContext);
 
   const { colors, theme, toggleTheme } = useTheme();
-  const { refreshing, onRefresh } = useRefresh();
+  const router = useRouter();
 
   const isDark = theme === 'dark';
 
-  const router = useRouter();
+  const { stats, refreshStats } = useProfileStats(user?.id);
+  const { preferences, updatePreference } = useNotificationPreferences();
 
-  const [isEditing, setIsEditing] = useState(false);
-  const [nameInput, setNameInput] = useState('');
+  const handleRefresh = useCallback(async () => {
+    await Promise.all([refreshProfile(), refreshStats()]);
+  }, [refreshProfile, refreshStats]);
+
+  const { refreshing, onRefresh } = useRefresh(handleRefresh);
 
   useEffect(() => {
     if (!isLoading && !isLoggedIn) {
       router.replace('/(auth)/login');
     }
   }, [isLoggedIn, isLoading, router]);
+
+  const fullName = profile?.full_name || 'Kullanıcı Adı';
+  const email = user?.email || 'eposta@adresiniz.com';
+
+  const avatarUrl =
+    profile?.avatar_url ||
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2B62E5&color=fff&size=150`;
+
+  const listingsBadge = useMemo(() => {
+    const listingStat = stats.find((stat) => stat.key === 'listings');
+    return listingStat ? Number(listingStat.value) : 0;
+  }, [stats]);
+
+  const handleEditProfile = useCallback(() => {
+    Alert.alert('Bilgi', 'Profil düzenleme özelliği yakında eklenecek.');
+  }, []);
+
+  const handleComingSoon = useCallback((feature) => {
+    Alert.alert('Yakında', `${feature} özelliği yakında eklenecek.`);
+  }, []);
+
+  const handleStatPress = useCallback(
+    (key) => {
+      if (key === 'listings') {
+        router.push('/mylistings');
+        return;
+      }
+      if (key === 'favorites') {
+        router.push('/favorites');
+        return;
+      }
+      if (key === 'pets') {
+        router.push('/(profile)/my-pets');
+      }
+    },
+    [router]
+  );
+
+  const handleDeleteAccount = useCallback(() => {
+    Alert.alert(
+      'Hesabı Sil',
+      'Hesabınızı silmek istediğinize emin misiniz? Bu işlem geri alınamaz.',
+      [
+        { text: 'Vazgeç', style: 'cancel' },
+        {
+          text: 'Sil',
+          style: 'destructive',
+          onPress: () => {
+            Alert.alert(
+              'Bilgi',
+              'Hesap silme isteğiniz alındı. Bu özellik yakında aktif olacak.'
+            );
+          },
+        },
+      ]
+    );
+  }, []);
 
   if (isLoading) {
     return (
@@ -53,67 +121,6 @@ const Profile = () => {
     );
   }
 
-  const fullName = profile?.full_name || 'Kullanıcı Adı';
-  const email = user?.email || 'eposta@adresiniz.com';
-
-  const avatarUrl =
-    profile?.avatar_url ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2B62E5&color=fff&size=150`;
-
-  // const handleEditPress = () => {
-  //   setNameInput(fullName);
-  //   setIsEditing(true);
-  // };
-
-  // const handleSaveProfile = async () => {
-  //   if (!nameInput.trim()) {
-  //     Alert.alert('Uyarı', 'İsim alanı boş bırakılamaz!');
-  //     return;
-  //   }
-
-  //   try {
-  //     await updateProfile(nameInput.trim());
-  //     setIsEditing(false);
-  //     Alert.alert('Başarılı', 'Profil bilgileriniz güncellendi.');
-  //   } catch (error) {
-  //     Alert.alert('Hata', error.message);
-  //   }
-  // };
-
-  const menuItems = [
-    {
-      id: 'edit-profile',
-      title: 'Profili Düzenle',
-      icon: 'person-outline',
-      action: () => console.log('Profil Düzenle'),
-    },
-    {
-      id: 'my-listings',
-      title: 'İlanlarım',
-      icon: 'list-outline',
-      action: () => router.push('/mylistings'),
-    },
-    {
-      id: 'favorites',
-      title: 'Favorilerim',
-      icon: 'heart-outline',
-      action: () => router.push('/favorites'),
-    },
-
-    {
-      id: 'patili-dostlar',
-      title: 'Patili Dostlarım',
-      icon: 'paw-outline',
-      action: () => router.push('/(profile)/my-pets'),
-    },
-    {
-      id: 'settings',
-      title: 'Uygulama Ayarları',
-      icon: 'settings-outline',
-      action: () => console.log('Ayarlar'),
-    },
-  ];
-
   return (
     <ThemedView style={styles.container}>
       <ScrollView
@@ -123,78 +130,161 @@ const Profile = () => {
           <RefreshControl
             refreshing={refreshing}
             onRefresh={onRefresh}
-            colors={['#2563eb']}
+            colors={[colors.primary]}
+            tintColor={colors.primary}
           />
         }
       >
-        <View style={styles.profileHeader}>
-          <View style={styles.avatarWrapper}>
-            <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-          </View>
-          <ThemedText style={styles.fullName}>{fullName}</ThemedText>
-          <ThemedText style={styles.email}>{email}</ThemedText>
+        <ProfileHeader
+          fullName={fullName}
+          email={email}
+          avatarUrl={avatarUrl}
+          onEditPress={handleEditProfile}
+        />
+
+        <ProfileStatsRow stats={stats} onStatPress={handleStatPress} />
+
+        <View style={styles.sections}>
+          <ProfileSection title='Hesap'>
+            <ProfileMenuItem
+              icon='create-outline'
+              label='Profili Düzenle'
+              onPress={handleEditProfile}
+            />
+            <ProfileMenuItem
+              icon='mail-outline'
+              label='E-posta & Şifre'
+              onPress={() => handleComingSoon('E-posta ve şifre yönetimi')}
+            />
+            <ProfileMenuItem
+              icon='star-outline'
+              label='Premium Üyelik'
+              value='Ücretsiz'
+              chevron={false}
+              onPress={() => handleComingSoon('Premium üyelik')}
+            />
+            <ProfileMenuItem
+              icon='list-outline'
+              label='İlanlarım'
+              badge={listingsBadge}
+              isLast
+              onPress={() => router.push('/mylistings')}
+            />
+          </ProfileSection>
+
+          <ProfileSection title='Bildirimler'>
+            <ProfileToggleItem
+              icon='notifications-outline'
+              label='Push Bildirimleri'
+              value={preferences.push}
+              onValueChange={(value) => updatePreference('push', value)}
+            />
+            <ProfileToggleItem
+              icon='heart-outline'
+              label='Eşleşme Bildirimleri'
+              value={preferences.match}
+              onValueChange={(value) => updatePreference('match', value)}
+            />
+            <ProfileToggleItem
+              icon='chatbubble-outline'
+              label='Mesaj Bildirimleri'
+              value={preferences.message}
+              onValueChange={(value) => updatePreference('message', value)}
+            />
+            <ProfileToggleItem
+              icon='volume-high-outline'
+              label='Bildirim Sesi'
+              value={preferences.sound}
+              onValueChange={(value) => updatePreference('sound', value)}
+            />
+            <ProfileToggleItem
+              icon='mail-outline'
+              label='E-posta Bildirimleri'
+              value={preferences.email}
+              onValueChange={(value) => updatePreference('email', value)}
+              isLast
+            />
+          </ProfileSection>
+
+          <ProfileSection title='Uygulama'>
+            <ProfileToggleItem
+              icon={isDark ? 'moon-outline' : 'sunny-outline'}
+              label='Karanlık Mod'
+              value={isDark}
+              onValueChange={(value) => {
+                if (value !== isDark) toggleTheme();
+              }}
+            />
+            <ProfileMenuItem
+              icon='heart-outline'
+              label='Favorilerim'
+              onPress={() => router.push('/favorites')}
+            />
+            <ProfileMenuItem
+              icon='paw-outline'
+              label='Patili Dostlarım'
+              onPress={() => router.push('/(profile)/my-pets')}
+            />
+            <ProfileMenuItem
+              icon='settings-outline'
+              label='Uygulama Ayarları'
+              isLast
+              onPress={() => handleComingSoon('Uygulama ayarları')}
+            />
+          </ProfileSection>
+
+          <ProfileSection title='Gizlilik & Destek'>
+            <ProfileMenuItem
+              icon='shield-outline'
+              label='Gizlilik Ayarları'
+              onPress={() => handleComingSoon('Gizlilik ayarları')}
+            />
+            <ProfileMenuItem
+              icon='phone-portrait-outline'
+              label='Cihaz İzinleri'
+              onPress={() => handleComingSoon('Cihaz izinleri')}
+            />
+            <ProfileMenuItem
+              icon='help-circle-outline'
+              label='Yardım & Destek'
+              onPress={() => handleComingSoon('Yardım ve destek')}
+            />
+            <ProfileMenuItem
+              icon='information-circle-outline'
+              label='Hakkında'
+              value={`v${APP_VERSION}`}
+              chevron={false}
+              isLast
+              onPress={() =>
+                Alert.alert(
+                  'PetSafeMatch',
+                  `Sürüm ${APP_VERSION}\nEvcil hayvan eşleştirme platformu.`
+                )
+              }
+            />
+          </ProfileSection>
         </View>
 
-        <View
-          style={[styles.menuContainer, { borderColor: colors.borderColor }]}
-        >
-          <Pressable
-            style={[
-              styles.menuItem,
-              styles.menuItemBorder,
-              { borderColor: colors.borderColor },
-            ]}
-            onPress={toggleTheme}
-          >
-            <View style={styles.menuItemLeft}>
+        <View style={styles.footer}>
+          <ThemedButton style={styles.logoutButton} onPress={logout}>
+            <View style={styles.logoutContent}>
               <Ionicons
-                name={isDark ? 'moon-outline' : 'sunny-outline'}
-                size={22}
-                color={colors.textColor}
-                style={[styles.menuIcon, { color: colors.title }]}
+                name='log-out-outline'
+                size={18}
+                color={colors.onPrimary}
               />
-              <ThemedText style={styles.menuItemText}>
-                {isDark ? 'Karanlık Mod' : 'Aydınlık Mod'}
-              </ThemedText>
+              <ThemedText style={styles.logoutText}>Çıkış Yap</ThemedText>
             </View>
+          </ThemedButton>
 
-            <ThemedText style={styles.themeStatusText}>
-              {isDark ? 'Açık' : 'Açık'}
+          <Pressable
+            onPress={handleDeleteAccount}
+            style={({ pressed }) => pressed && styles.pressed}
+          >
+            <ThemedText style={[styles.deleteText, { color: colors.warning }]}>
+              Hesabı Sil
             </ThemedText>
           </Pressable>
-
-          {menuItems.map((item, index) => (
-            <Pressable
-              key={item.id}
-              style={[
-                styles.menuItem,
-                index !== menuItems.length - 1 && [
-                  styles.menuItemBorder,
-                  { borderColor: colors.borderColor },
-                ],
-              ]}
-              onPress={item.action}
-            >
-              <View style={styles.menuItemLeft}>
-                <Ionicons
-                  name={item.icon}
-                  size={22}
-                  color={colors.textColor}
-                  style={[styles.menuIcon, { color: colors.title }]}
-                />
-                <ThemedText style={styles.menuItemText}>
-                  {item.title}
-                </ThemedText>
-              </View>
-              <Ionicons name='chevron-forward' size={18} color='#9CA3AF' />
-            </Pressable>
-          ))}
-        </View>
-
-        <View style={styles.logoutWrapper}>
-          <ThemedButton style={styles.buttonContainer} onPress={logout}>
-            <ThemedText style={styles.buttonText}>Çıkış Yap</ThemedText>
-          </ThemedButton>
         </View>
       </ScrollView>
     </ThemedView>
@@ -209,117 +299,39 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === 'ios' ? 20 : 10,
     paddingBottom: 40,
   },
-  profileHeader: {
-    alignItems: 'center',
-    marginVertical: 25,
-  },
-  avatarWrapper: {
-    position: 'relative',
-    marginBottom: 16,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-  },
-  // editAvatarButton: {
-  //   position: 'absolute',
-  //   bottom: 0,
-  //   right: 0,
-  //   width: 32,
-  //   height: 32,
-  //   borderRadius: 16,
-  //   alignItems: 'center',
-  //   justifyContent: 'center',
-  //   borderWidth: 3,
-  //   borderColor: 'transparent',
-  // },
-  fullName: {
-    fontSize: 22,
-    fontWeight: '700',
-    marginBottom: 4,
-  },
-  email: {
-    fontSize: 14,
-    color: '#9CA3AF',
-  },
-  menuContainer: {
-    borderWidth: 1,
-    borderRadius: 16,
-    overflow: 'hidden',
-    marginVertical: 10,
-  },
-  menuItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 16,
+  sections: {
     paddingHorizontal: 16,
   },
-  menuItemBorder: {
-    borderBottomWidth: 1,
+  footer: {
+    paddingHorizontal: 16,
+    marginTop: 8,
+    alignItems: 'center',
   },
-  menuItemLeft: {
+  logoutButton: {
+    width: '100%',
+    borderRadius: 16,
+    paddingVertical: 14,
+    marginBottom: 8,
+  },
+  logoutContent: {
     flexDirection: 'row',
     alignItems: 'center',
-    flex: 1,
+    justifyContent: 'center',
+    gap: 8,
   },
-  menuIcon: {
-    marginRight: 14,
-    width: 24,
-    textAlign: 'center',
-  },
-  menuItemText: {
+  logoutText: {
+    color: '#ffffff',
     fontSize: 16,
-    fontWeight: '500',
-  },
-  themeStatusText: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    fontWeight: '500',
-  },
-  buttonContainer: {
-    width: '100%',
-    borderRadius: 12,
-  },
-  buttonText: {
-    color: '#FFF',
-    textAlign: 'center',
     fontWeight: '600',
-    fontSize: 16,
   },
-  logoutWrapper: {
-    marginTop: 30,
-    alignItems: 'center',
-    width: '100%',
+  deleteText: {
+    fontSize: 14,
+    fontWeight: '500',
+    paddingVertical: 8,
   },
-  // inputContainer: {
-  //   width: '100%',
-  //   alignItems: 'center',
-  //   paddingHorizontal: 20,
-  // },
-  // nameInput: {
-  //   width: '100%',
-  //   borderWidth: 1,
-  //   borderRadius: 8,
-  //   paddingHorizontal: 12,
-  //   paddingVertical: 8,
-  //   fontSize: 16,
-  //   textAlign: 'center',
-  //   marginBottom: 10,
-  // },
-  // actionRow: {
-  //   flexDirection: 'row',
-  //   gap: 20,
-  // },
-  // cancelButton: {
-  //   padding: 8,
-  // },
-  // saveButton: {
-  //   padding: 8,
-  // },
+  pressed: {
+    opacity: 0.7,
+  },
 });

@@ -21,6 +21,8 @@ export const Colors = {
     primaryGradientStart: '#7c3aed',
     primaryGradientEnd: '#5046e5',
     logoGlow: '#5046e5',
+    primarySurface: 'rgba(80, 70, 229, 0.2)',
+    warningSurface: 'rgba(224, 82, 96, 0.12)',
   },
 
   light: {
@@ -41,5 +43,7 @@ export const Colors = {
     primaryGradientStart: '#6366f1',
     primaryGradientEnd: '#5046e5',
     logoGlow: '#5046e5',
+    primarySurface: 'rgba(80, 70, 229, 0.12)',
+    warningSurface: 'rgba(224, 82, 96, 0.12)',
   },
 };

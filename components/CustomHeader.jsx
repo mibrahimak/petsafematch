@@ -61,7 +61,7 @@ const CustomHeader = () => {
               <Ionicons
                 name='notifications-outline'
                 size={26}
-                color={colors.title}
+                color={colors.text}
               />
               <NotificationBadge />
             </View>
@@ -72,7 +72,7 @@ const CustomHeader = () => {
             style={styles.iconButton}
           >
             <View>
-              <Feather name='message-circle' size={26} color={colors.title} />
+              <Feather name='message-circle' size={26} color={colors.text} />
               <MessageBadge />
             </View>
           </Pressable>

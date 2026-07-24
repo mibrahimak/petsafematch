@@ -58,6 +58,7 @@ export default function MyPets() {
   const [modalVisible, setModalVisible] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [joiningMatchId, setJoiningMatchId] = useState(null);
+  const [unJoiningMatchId, setUnJoiningMatchId] = useState(null);
 
   const fetchMatchEnrollments = useCallback(async () => {
     if (!user?.id) return;
@@ -71,10 +72,7 @@ export default function MyPets() {
       if (error) throw error;
       setMatchPetIds(new Set((data || []).map((row) => row.pet_id)));
     } catch (error) {
-      console.error(
-        '[fetchMatchEnrollments] Eşleştirme kayıtları alınamadı:',
-        error
-      );
+      console.error('Eşleştirme kayıtları alınamadı:', error);
     }
   }, [user?.id]);
 
@@ -95,7 +93,7 @@ export default function MyPets() {
       if (error) throw error;
       setPets(data || []);
     } catch (error) {
-      console.error('[fetchMyPets] Can dostlar listelenirken hata:', error);
+      console.error('Can dostlar listelenirken hata:', error);
       Alert.alert('Hata', 'Can dostlarınız listelenirken bir sorun oluştu.');
     } finally {
       setLoading(false);
@@ -128,10 +126,37 @@ export default function MyPets() {
       setMatchPetIds((prev) => new Set([...prev, pet.id]));
       Alert.alert('Başarılı', `${pet.name} eşleştirmeye katıldı!`);
     } catch (error) {
-      console.error('[handleJoinMatch] Eşleştirmeye katılırken hata:', error);
+      console.error('Eşleştirmeye katılırken hata:', error);
       Alert.alert('Hata', 'Eşleştirmeye katılırken bir sorun oluştu.');
     } finally {
       setJoiningMatchId(null);
+    }
+  };
+
+  const handleUnJoinMatch = async (pet) => {
+    if (!matchPetIds.has(pet.id)) return;
+
+    setUnJoiningMatchId(pet.id);
+    try {
+      const { error } = await supabase
+        .from('match_mypet')
+        .delete()
+        .eq('pet_id', pet.id)
+        .eq('userId', user.id);
+      if (error) throw error;
+
+      // Local Stateden silinen pet_id'yi çıkar
+      setMatchPetIds((prev) => {
+        const next = new Set(prev);
+        next.delete(pet.id);
+        return next;
+      });
+      Alert.alert('Başarılı', `${pet.name} eşleştirmeden çıkarıldı!`);
+    } catch (error) {
+      console.error('Eşleştirmeden çıkarılırken hata:', error);
+      Alert.alert('Hata', 'Eşleştirmeden çıkarılırken bir sorun oluştu.');
+    } finally {
+      setUnJoiningMatchId(null);
     }
   };
 
@@ -185,7 +210,6 @@ export default function MyPets() {
           style: 'destructive',
           onPress: async () => {
             try {
-              // 1. Veritabanından sil
               const { error } = await supabase
                 .from('user_pets')
                 .delete()
@@ -193,7 +217,6 @@ export default function MyPets() {
 
               if (error) throw error;
 
-              // 2. Eğer depolanmış bir görsel varsa storage'dan da temizle (İsteğe bağlı temizlik)
               if (pet.image_url) {
                 const urlParts = pet.image_url.split('/public/pet-photos/');
                 if (urlParts.length > 1) {
@@ -336,12 +359,17 @@ export default function MyPets() {
                         ? { backgroundColor: '#D1FAE5' }
                         : { backgroundColor: '#FCE7F3' },
                     ]}
-                    onPress={() => handleJoinMatch(item)}
+                    onPress={() => {
+                      matchPetIds.has(item.id)
+                        ? handleUnJoinMatch(item)
+                        : handleJoinMatch(item);
+                    }}
                     disabled={
-                      matchPetIds.has(item.id) || joiningMatchId === item.id
+                      joiningMatchId === item.id || unJoiningMatchId === item.id
                     }
                   >
-                    {joiningMatchId === item.id ? (
+                    {joiningMatchId === item.id ||
+                    unJoiningMatchId === item.id ? (
                       <ActivityIndicator size='small' color='#10B981' />
                     ) : (
                       <>

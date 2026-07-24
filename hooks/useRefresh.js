@@ -14,7 +14,7 @@ export function useRefresh(refreshFunction) {
       console.error('Yenileme sırasında hata oluştu', err);
     } finally {
       isRefreshingRef.current = false;
-      setRefreshing(false); // Spinner'ı kapatıyoruz
+      setRefreshing(false);
     }
   }, [refreshFunction]);
 

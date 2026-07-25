@@ -8,7 +8,6 @@ import React, {
 } from 'react';
 import {
   StyleSheet,
-  FlatList,
   TextInput,
   Pressable,
   Text,
@@ -23,6 +22,7 @@ import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRefresh } from '../../hooks/useRefresh';
 import { AuthContext } from '../../contexts/AuthContext';
+import { FlashList } from '@shopify/flash-list';
 
 import CreateListingModal from '../../components/CreateListingModal';
 import ThemedView from '../../components/ThemedView';
@@ -148,7 +148,7 @@ const HomeScreen = () => {
         style={styles.searchInput}
       />
 
-      <FlatList
+      <FlashList
         data={displayData}
         renderItem={({ item }) => {
           const isCardFavorite = favorites.includes(item.id);

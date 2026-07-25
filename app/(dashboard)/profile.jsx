@@ -263,28 +263,21 @@ const Profile = () => {
               }
             />
           </ProfileSection>
-        </View>
 
-        <View style={styles.footer}>
-          <ThemedButton style={styles.logoutButton} onPress={logout}>
-            <View style={styles.logoutContent}>
-              <Ionicons
-                name='log-out-outline'
-                size={18}
-                color={colors.onPrimary}
-              />
-              <ThemedText style={styles.logoutText}>Çıkış Yap</ThemedText>
-            </View>
-          </ThemedButton>
-
-          <Pressable
-            onPress={handleDeleteAccount}
-            style={({ pressed }) => pressed && styles.pressed}
-          >
-            <ThemedText style={[styles.deleteText, { color: colors.warning }]}>
-              Hesabı Sil
-            </ThemedText>
-          </Pressable>
+          <ProfileSection title='Çıkış Yap & Hesabı Sil'>
+            <ProfileMenuItem
+              icon='trash-outline'
+              label='Hesabı Sil'
+              onPress={handleDeleteAccount}
+              danger={true}
+            />
+            <ProfileMenuItem
+              icon='log-out-outline'
+              label='Çıkış Yap'
+              onPress={logout}
+              danger={true}
+            />
+          </ProfileSection>
         </View>
       </ScrollView>
     </ThemedView>

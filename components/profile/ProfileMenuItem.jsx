@@ -29,6 +29,7 @@ const ProfileMenuItem = ({
           borderBottomWidth: 1,
           borderBottomColor: colors.borderColor,
         },
+
         pressed && styles.pressed,
       ]}
     >

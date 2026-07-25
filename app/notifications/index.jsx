@@ -1,10 +1,4 @@
-import {
-  View,
-  FlatList,
-  Pressable,
-  StyleSheet,
-  ActivityIndicator,
-} from 'react-native';
+import { View, Pressable, StyleSheet, ActivityIndicator } from 'react-native';
 import { useCallback, useContext } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons, FontAwesome } from '@expo/vector-icons';
@@ -14,6 +8,7 @@ import { useTheme } from '../../hooks/useTheme';
 
 import ThemedView from '../../components/ThemedView';
 import ThemedText from '../../components/ThemedText';
+import { FlashList } from '@shopify/flash-list';
 
 const formatDate = (dateString) => {
   const date = new Date(dateString);
@@ -117,11 +112,7 @@ const NotificationsScreen = () => {
       </View>
 
       {loading ? (
-        <ActivityIndicator
-          size='large'
-          color='#2563EB'
-          style={styles.loader}
-        />
+        <ActivityIndicator size='large' color='#2563EB' style={styles.loader} />
       ) : notifications.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Ionicons
@@ -134,7 +125,7 @@ const NotificationsScreen = () => {
           </ThemedText>
         </View>
       ) : (
-        <FlatList
+        <FlashList
           data={notifications}
           keyExtractor={(item) => item.id}
           renderItem={renderItem}

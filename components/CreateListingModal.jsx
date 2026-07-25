@@ -1,4 +1,4 @@
-import React, { useContext } from 'react';
+import React, { useCallback, useContext } from 'react';
 import {
   Modal,
   StyleSheet,
@@ -25,6 +25,11 @@ import * as yup from 'yup';
 import ThemedView from './ThemedView';
 import ThemedText from './ThemedText';
 import ThemedButton from './ThemedButton';
+import {
+  HEALTH_OPTIONS,
+  LISTING_TRAITS,
+  TRAIT_LABELS,
+} from '../constants/listingOptions';
 
 const CATEGORIES = ['Kedi', 'Köpek', 'Kuş', 'Diğer'];
 const GENDERS = ['Erkek', 'Dişi'];
@@ -47,6 +52,11 @@ const formSchema = yup.object({
     .string()
     .oneOf(CATEGORIES)
     .required('Lütfen bir kategori seçin'),
+  traits: yup.array().of(yup.string().oneOf(TRAIT_LABELS)),
+  weight: yup.string().trim(),
+  color: yup.string().trim(),
+  last_vet_visit: yup.string().trim(),
+  last_vet_clinic: yup.string().trim(),
 });
 
 export default function CreateListingModal({
@@ -104,6 +114,15 @@ export default function CreateListingModal({
       gender: 'Erkek',
       species: '',
       category: 'Kedi',
+      traits: [],
+      weight: '',
+      color: '',
+      vaccines: false,
+      neutered: false,
+      nail_trim: false,
+      microchip: false,
+      last_vet_visit: '',
+      last_vet_clinic: '',
     },
     validationSchema: formSchema,
     onSubmit: async (values, { setSubmitting, resetForm }) => {
@@ -113,6 +132,15 @@ export default function CreateListingModal({
           fileName: values.imageFileName,
           mimeType: values.imageMimeType,
         });
+
+        const healthStatus = {
+          vaccines: values.vaccines,
+          neutered: values.neutered,
+          nail_trim: values.nail_trim,
+          microchip: values.microchip,
+          last_vet_visit: values.last_vet_visit.trim() || null,
+          last_vet_clinic: values.last_vet_clinic.trim() || null,
+        };
 
         const { data, error } = await supabase
           .from('listings')
@@ -128,13 +156,18 @@ export default function CreateListingModal({
               image_url: publicImageUrl,
               userId: user?.id,
               is_active: true,
+              review_status: 'pending',
+              traits: values.traits,
+              health_status: healthStatus,
+              weight: values.weight.trim() || null,
+              color: values.color.trim() || null,
             },
           ])
           .select();
 
         if (error) throw error;
 
-        if (data && data.length > 0) {
+        if (data && data.length > 0 && data[0].review_status === 'approved') {
           addPetToStore(data[0]);
         }
 
@@ -149,6 +182,24 @@ export default function CreateListingModal({
       }
     },
   });
+
+  const handleToggleTrait = useCallback(
+    (traitLabel) => {
+      const currentTraits = formik.values.traits;
+      const nextTraits = currentTraits.includes(traitLabel)
+        ? currentTraits.filter((trait) => trait !== traitLabel)
+        : [...currentTraits, traitLabel];
+      formik.setFieldValue('traits', nextTraits);
+    },
+    [formik]
+  );
+
+  const handleToggleHealth = useCallback(
+    (healthKey) => {
+      formik.setFieldValue(healthKey, !formik.values[healthKey]);
+    },
+    [formik]
+  );
 
   const pickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -289,7 +340,7 @@ export default function CreateListingModal({
                       style={[
                         styles.chip,
                         formik.values.category === cat && {
-                          backgroundColor: '#2563EB',
+                          backgroundColor: colors.primary,
                         },
                       ]}
                       onPress={() => formik.setFieldValue('category', cat)}
@@ -297,7 +348,9 @@ export default function CreateListingModal({
                       <Text
                         style={[
                           styles.chipText,
-                          formik.values.category === cat && { color: '#FFF' },
+                          formik.values.category === cat && {
+                            color: colors.onPrimary,
+                          },
                         ]}
                       >
                         {cat}
@@ -333,7 +386,7 @@ export default function CreateListingModal({
                       style={[
                         styles.chip,
                         formik.values.gender === gen && {
-                          backgroundColor: '#2563EB',
+                          backgroundColor: colors.primary,
                         },
                       ]}
                       onPress={() => formik.setFieldValue('gender', gen)}
@@ -341,7 +394,9 @@ export default function CreateListingModal({
                       <Text
                         style={[
                           styles.chipText,
-                          formik.values.gender === gen && { color: '#FFF' },
+                          formik.values.gender === gen && {
+                            color: colors.onPrimary,
+                          },
                         ]}
                       >
                         {gen}
@@ -361,7 +416,7 @@ export default function CreateListingModal({
                       style={[
                         styles.chipLong,
                         formik.values.age === ageGroup && {
-                          backgroundColor: '#2563EB',
+                          backgroundColor: colors.primary,
                         },
                       ]}
                       onPress={() => formik.setFieldValue('age', ageGroup)}
@@ -369,7 +424,9 @@ export default function CreateListingModal({
                       <Text
                         style={[
                           styles.chipText,
-                          formik.values.age === ageGroup && { color: '#FFF' },
+                          formik.values.age === ageGroup && {
+                            color: colors.onPrimary,
+                          },
                         ]}
                       >
                         {ageGroup}
@@ -418,11 +475,130 @@ export default function CreateListingModal({
                   </Text>
                 )}
 
+                <ThemedText style={styles.label}>Karakter Özellikleri</ThemedText>
+                <View style={styles.chipRow}>
+                  {LISTING_TRAITS.map((trait) => {
+                    const isActive = formik.values.traits.includes(trait.label);
+
+                    return (
+                      <Pressable
+                        key={trait.id}
+                        style={[
+                          styles.chip,
+                          { backgroundColor: colors.uiBackground },
+                          isActive && {
+                            backgroundColor: colors.primary,
+                          },
+                        ]}
+                        onPress={() => handleToggleTrait(trait.label)}
+                      >
+                        <Text
+                          style={[
+                            styles.chipText,
+                            { color: colors.text },
+                            isActive && { color: colors.onPrimary },
+                          ]}
+                        >
+                          {trait.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <ThemedText style={styles.label}>Ağırlık</ThemedText>
+                <TextInput
+                  style={[
+                    styles.input,
+                    { borderColor: colors.borderColor, color: colors.text },
+                  ]}
+                  value={formik.values.weight}
+                  onChangeText={formik.handleChange('weight')}
+                  onBlur={formik.handleBlur('weight')}
+                  placeholder='Örn: 3.2 kg'
+                  placeholderTextColor={colors.label}
+                />
+
+                <ThemedText style={styles.label}>Renk</ThemedText>
+                <TextInput
+                  style={[
+                    styles.input,
+                    { borderColor: colors.borderColor, color: colors.text },
+                  ]}
+                  value={formik.values.color}
+                  onChangeText={formik.handleChange('color')}
+                  onBlur={formik.handleBlur('color')}
+                  placeholder='Örn: Gri-Beyaz'
+                  placeholderTextColor={colors.label}
+                />
+
+                <ThemedText style={styles.label}>Sağlık Durumu</ThemedText>
+                <View style={styles.chipRow}>
+                  {HEALTH_OPTIONS.map((option) => {
+                    const isActive = formik.values[option.key];
+
+                    return (
+                      <Pressable
+                        key={option.key}
+                        style={[
+                          styles.chip,
+                          { backgroundColor: colors.uiBackground },
+                          isActive && {
+                            backgroundColor: colors.primary,
+                          },
+                        ]}
+                        onPress={() => handleToggleHealth(option.key)}
+                      >
+                        <Text
+                          style={[
+                            styles.chipText,
+                            { color: colors.text },
+                            isActive && { color: colors.onPrimary },
+                          ]}
+                        >
+                          {option.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </View>
+
+                <ThemedText style={styles.label}>
+                  Son Veteriner Ziyareti
+                </ThemedText>
+                <TextInput
+                  style={[
+                    styles.input,
+                    { borderColor: colors.borderColor, color: colors.text },
+                  ]}
+                  value={formik.values.last_vet_visit}
+                  onChangeText={formik.handleChange('last_vet_visit')}
+                  onBlur={formik.handleBlur('last_vet_visit')}
+                  placeholder='Örn: Haz 2025'
+                  placeholderTextColor={colors.label}
+                />
+
+                <ThemedText style={styles.label}>Veteriner Kliniği</ThemedText>
+                <TextInput
+                  style={[
+                    styles.input,
+                    { borderColor: colors.borderColor, color: colors.text },
+                  ]}
+                  value={formik.values.last_vet_clinic}
+                  onChangeText={formik.handleChange('last_vet_clinic')}
+                  onBlur={formik.handleBlur('last_vet_clinic')}
+                  placeholder='Örn: Özel Klinik, İstanbul'
+                  placeholderTextColor={colors.label}
+                />
+
                 <View style={styles.submitButtonWrapper}>
                   <ThemedButton
                     style={[
                       styles.submitButton,
-                      { opacity: formik.isSubmitting ? 0.6 : 1 },
+                      {
+                        backgroundColor: colors.primary,
+                        opacity: formik.isSubmitting ? 0.6 : 1,
+                      },
                     ]}
                     onPress={formik.handleSubmit}
                     disabled={formik.isSubmitting}
@@ -560,10 +736,9 @@ const styles = StyleSheet.create({
     borderRadius: 25,
     paddingVertical: 12,
     width: '90%',
-    backgroundColor: '#2563EB',
   },
   buttonText: {
-    color: '#FFF',
+    color: '#FFFFFF',
     textAlign: 'center',
     fontWeight: '700',
     fontSize: 16,

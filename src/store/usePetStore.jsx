@@ -8,7 +8,11 @@ export const usePetStore = create((set) => ({
   fetchPets: async () => {
     set({ loading: true });
     try {
-      const { data, error } = await supabase.from('listings').select('*');
+      const { data, error } = await supabase
+        .from('listings')
+        .select('*')
+        .eq('is_active', true)
+        .eq('review_status', 'approved');
       if (error) throw error;
       set({ pets: data || [] });
     } catch (error) {

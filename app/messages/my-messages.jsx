@@ -1,6 +1,5 @@
 import {
   View,
-  FlatList,
   Pressable,
   Image,
   StyleSheet,
@@ -15,6 +14,7 @@ import { useTheme } from '../../hooks/useTheme';
 
 import ThemedView from '../../components/ThemedView';
 import ThemedText from '../../components/ThemedText';
+import { FlashList } from '@shopify/flash-list';
 
 const MessagesList = () => {
   const { user } = useContext(AuthContext);
@@ -147,7 +147,7 @@ const MessagesList = () => {
           </ThemedText>
         </View>
       ) : (
-        <FlatList
+        <FlashList
           data={conversations}
           keyExtractor={(item) => item.otherUserId}
           renderItem={renderItem}

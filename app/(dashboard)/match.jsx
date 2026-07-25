@@ -16,12 +16,13 @@ import { AuthContext } from '../../contexts/AuthContext';
 import { useTheme } from '../../hooks/useTheme';
 import { useRouter } from 'expo-router';
 import { supabase } from '../../libs/supabase';
+import { Ionicons } from '@expo/vector-icons';
 import Swiper from 'react-native-deck-swiper';
 
 // Themed Components
 import ThemedView from '../../components/ThemedView';
 import ThemedText from '../../components/ThemedText';
-import { Ionicons } from '@expo/vector-icons';
+
 import ThemedButton from '../../components/ThemedButton';
 
 const { width, height } = Dimensions.get('window');

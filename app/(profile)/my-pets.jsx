@@ -3,7 +3,6 @@ import {
   StyleSheet,
   View,
   ActivityIndicator,
-  FlatList,
   Image,
   Modal,
   ScrollView,
@@ -26,6 +25,7 @@ import { useTheme } from '../../hooks/useTheme';
 import ThemedView from '../../components/ThemedView';
 import ThemedText from '../../components/ThemedText';
 import ThemedButton from '../../components/ThemedButton';
+import { FlashList } from '@shopify/flash-list';
 
 const CATEGORIES = ['Kedi', 'Köpek', 'Kuş', 'Diğer'];
 const GENDERS = ['Erkek', 'Dişi'];
@@ -300,7 +300,7 @@ export default function MyPets() {
           </ThemedText>
         </View>
       ) : (
-        <FlatList
+        <FlashList
           data={pets}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}

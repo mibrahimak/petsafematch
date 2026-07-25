@@ -1,6 +1,5 @@
 import {
   View,
-  FlatList,
   Pressable,
   Image,
   TextInput,
@@ -70,7 +69,7 @@ const ChatScreen = () => {
 
   const router = useRouter();
 
-  const flatListRef = useRef(null);
+  const flashListRef = useRef(null);
 
   const [otherProfile, setOtherProfile] = useState(null);
 
@@ -324,14 +323,14 @@ const ChatScreen = () => {
         style={styles.container}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       >
-        <FlatList
-          ref={flatListRef}
+        <FlashList
+          ref={flashListRef}
           data={messages}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderMessage}
           contentContainerStyle={styles.messagesList}
           onContentSizeChange={() =>
-            flatListRef.current?.scrollToEnd({ animated: true })
+            flashListRef.current?.scrollToEnd({ animated: true })
           }
         />
 

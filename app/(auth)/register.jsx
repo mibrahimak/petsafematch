@@ -10,7 +10,7 @@ import ThemedText from '../../components/ThemedText';
 import AppLogo from '../../components/AppLogo';
 import AuthTextField from '../../components/auth/AuthTextField';
 import AuthPhoneField from '../../components/auth/AuthPhoneField';
-import GradientButton from '../../components/auth/GradientButton';
+import PrimaryButton from '../../components/auth/PrimaryButton';
 import { useTheme } from '../../hooks/useTheme';
 import AuthDivider from '../../components/auth/AuthDivider';
 import SocialAuthButton from '../../components/auth/SocialAuthButton';
@@ -306,7 +306,7 @@ const Register = () => {
           </ThemedText>
         ) : null}
 
-        <GradientButton
+        <PrimaryButton
           label='Hesap Oluştur'
           onPress={formik.handleSubmit}
           disabled={formik.isSubmitting}

@@ -16,15 +16,15 @@ import * as yup from 'yup';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../../contexts/AuthContext';
+import { useTheme } from '../../hooks/useTheme';
+import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 import ThemedView from '../../components/ThemedView';
 import ThemedText from '../../components/ThemedText';
 import AppLogo from '../../components/AppLogo';
 import AuthTextField from '../../components/auth/AuthTextField';
-import GradientButton from '../../components/auth/GradientButton';
+import PrimaryButton from '../../components/auth/PrimaryButton';
 import SocialAuthButton from '../../components/auth/SocialAuthButton';
 import AuthDivider from '../../components/auth/AuthDivider';
-import { useTheme } from '../../hooks/useTheme';
-import { KeyboardAwareScrollView } from 'react-native-keyboard-aware-scroll-view';
 
 const REMEMBER_EMAIL_KEY = '@auth/remember_email';
 
@@ -265,7 +265,7 @@ const Login = () => {
           </Pressable>
         </View>
 
-        <GradientButton
+        <PrimaryButton
           label='Giriş Yap'
           onPress={formik.handleSubmit}
           disabled={isBusy}

@@ -1,6 +1,5 @@
 import React, { memo } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
@@ -16,31 +15,27 @@ const ListingStickyCTA = ({ onPress }) => {
         styles.wrapper,
         {
           paddingBottom: insets.bottom + 16,
-          backgroundColor: colors.background + '00',
+          backgroundColor: colors.background,
+          borderTopColor: colors.borderColor || 'rgba(0,0,0,0.05)',
         },
       ]}
     >
-      <LinearGradient
-        colors={[colors.background + '00', colors.background]}
-        style={styles.fade}
-        pointerEvents='none'
-      />
-
       <Pressable
         onPress={onPress}
-        style={({ pressed }) => [styles.buttonWrapper, pressed && styles.pressed]}
+        style={({ pressed }) => [
+          styles.buttonWrapper,
+          { backgroundColor: colors.primary },
+          pressed && styles.pressed,
+        ]}
       >
-        <LinearGradient
-          colors={[colors.primaryGradientStart, colors.primaryGradientEnd]}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.button}
-        >
-          <Ionicons name='chatbubble-outline' size={18} color={colors.onPrimary} />
-          <ThemedText style={[styles.label, { color: colors.onPrimary }]}>
-            Sahibiyle İletişime Geç
-          </ThemedText>
-        </LinearGradient>
+        <Ionicons
+          name='chatbubble-outline'
+          size={18}
+          color={colors.onPrimary}
+        />
+        <ThemedText style={[styles.label, { color: colors.onPrimary }]}>
+          Sahibiyle İletişime Geç
+        </ThemedText>
       </Pressable>
     </View>
   );
@@ -57,18 +52,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 16,
   },
-  fade: {
-    position: 'absolute',
-    top: -40,
-    left: 0,
-    right: 0,
-    height: 40,
-  },
   buttonWrapper: {
     borderRadius: 16,
-    overflow: 'hidden',
-  },
-  button: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -76,11 +61,13 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     borderRadius: 16,
   },
+
   label: {
     fontSize: 16,
     fontWeight: '600',
   },
   pressed: {
     opacity: 0.9,
+    transform: [{ scale: 0.99 }],
   },
 });

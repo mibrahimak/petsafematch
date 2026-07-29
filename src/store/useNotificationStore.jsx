@@ -1,3 +1,4 @@
+import { Alert } from 'react-native';
 import { create } from 'zustand';
 import { supabase } from '../../libs/supabase';
 
@@ -66,6 +67,54 @@ export const useNotificationStore = create((set, get) => ({
     }
   },
 
+  deleteNotification: async (notificationId, userId) => {
+    const previousNotifications = get().notifications;
+
+    set({
+      notifications: previousNotifications.filter((n) => n.id !== notificationId),
+    });
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('id', notificationId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('[deleteNotification] Bildirim silinirken hata:', error);
+      set({ notifications: previousNotifications });
+      Alert.alert('Hata', 'Bildirim silinemedi. Lütfen tekrar deneyin.');
+      if (userId) {
+        get().fetchNotifications(userId);
+      }
+    }
+  },
+
+  deleteAllNotifications: async (userId) => {
+    if (!userId) return;
+
+    const previousNotifications = get().notifications;
+    set({ notifications: [] });
+
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('user_id', userId);
+
+      if (error) throw error;
+    } catch (error) {
+      console.error(
+        '[deleteAllNotifications] Bildirimler silinirken hata:',
+        error
+      );
+      set({ notifications: previousNotifications });
+      Alert.alert('Hata', 'Bildirimler silinemedi. Lütfen tekrar deneyin.');
+      get().fetchNotifications(userId);
+    }
+  },
+
   subscribeToNotifications: (userId) => {
     if (!userId) return;
 
@@ -102,6 +151,22 @@ export const useNotificationStore = create((set, get) => ({
           set({
             notifications: get().notifications.map((n) =>
               n.id === payload.new.id ? payload.new : n
+            ),
+          });
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: 'DELETE',
+          schema: 'public',
+          table: 'notifications',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          set({
+            notifications: get().notifications.filter(
+              (n) => n.id !== payload.old.id
             ),
           });
         }

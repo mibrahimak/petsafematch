@@ -12,7 +12,6 @@ const MessagesListHeader = ({ unreadCount, onBack }) => {
       style={[
         styles.header,
         {
-          backgroundColor: colors.navBackground,
           borderBottomColor: colors.borderColor,
         },
       ]}

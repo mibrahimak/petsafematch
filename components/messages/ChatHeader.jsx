@@ -5,12 +5,7 @@ import { useTheme } from '../../hooks/useTheme';
 import ThemedText from '../ThemedText';
 import { formatLastSeen, isUserOnline } from '../../utils/presenceUtils';
 
-const ChatHeader = ({
-  fullName,
-  avatarUrl,
-  lastSeenAt,
-  onBack,
-}) => {
+const ChatHeader = ({ fullName, avatarUrl, lastSeenAt, onBack }) => {
   const { colors } = useTheme();
   const online = isUserOnline(lastSeenAt);
 
@@ -19,7 +14,6 @@ const ChatHeader = ({
       style={[
         styles.header,
         {
-          backgroundColor: colors.navBackground,
           borderBottomColor: colors.borderColor,
         },
       ]}
@@ -54,10 +48,7 @@ const ChatHeader = ({
           {fullName}
         </ThemedText>
         <ThemedText
-          style={[
-            styles.status,
-            { color: online ? '#10b981' : colors.label },
-          ]}
+          style={[styles.status, { color: online ? '#10b981' : colors.label }]}
           numberOfLines={1}
         >
           {formatLastSeen(lastSeenAt)}

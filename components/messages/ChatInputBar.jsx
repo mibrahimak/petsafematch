@@ -19,7 +19,6 @@ const ChatInputBar = ({
       style={[
         styles.container,
         {
-          backgroundColor: colors.navBackground,
           borderTopColor: colors.borderColor,
         },
       ]}

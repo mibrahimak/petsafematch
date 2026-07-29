@@ -1,31 +1,29 @@
-import { useCallback, useContext, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useRef } from 'react';
 import { AppState } from 'react-native';
-import { AuthContext } from '../contexts/AuthContext';
 import { supabase } from '../libs/supabase';
 
 const HEARTBEAT_INTERVAL_MS = 60 * 1000;
 
-export const usePresence = () => {
-  const { user } = useContext(AuthContext);
+export const usePresence = (userId) => {
   const intervalRef = useRef(null);
 
   const updateLastSeen = useCallback(async () => {
-    if (!user?.id) return;
+    if (!userId) return;
 
     try {
       const { error } = await supabase
         .from('profiles')
         .update({ last_seen_at: new Date().toISOString() })
-        .eq('id', user.id);
+        .eq('id', userId);
 
       if (error) throw error;
     } catch (error) {
       console.error('[usePresence] last_seen_at güncellenemedi:', error);
     }
-  }, [user?.id]);
+  }, [userId]);
 
   useEffect(() => {
-    if (!user?.id) return undefined;
+    if (!userId) return undefined;
 
     updateLastSeen();
 
@@ -41,5 +39,5 @@ export const usePresence = () => {
       if (intervalRef.current) clearInterval(intervalRef.current);
       subscription.remove();
     };
-  }, [user?.id, updateLastSeen]);
+  }, [userId, updateLastSeen]);
 };

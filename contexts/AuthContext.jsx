@@ -179,7 +179,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {isLoggedIn ? <PresenceTracker /> : null}
+      {isLoggedIn && user?.id ? <PresenceTracker userId={user.id} /> : null}
       {children}
     </AuthContext.Provider>
   );

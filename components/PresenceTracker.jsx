@@ -1,7 +1,7 @@
 import { usePresence } from '../hooks/usePresence';
 
-const PresenceTracker = () => {
-  usePresence();
+const PresenceTracker = ({ userId }) => {
+  usePresence(userId);
   return null;
 };
 

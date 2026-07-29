@@ -14,7 +14,8 @@ export const useMessagingStore = create((set) => ({
         .from('messages')
         .select('*', { count: 'exact', head: true })
         .eq('receiver_id', userId)
-        .eq('is_read', false);
+        .eq('is_read', false)
+        .eq('deleted_for_receiver', false);
 
       if (error) throw error;
       set({ unreadCount: count || 0 });

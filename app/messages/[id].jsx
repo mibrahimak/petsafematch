@@ -11,22 +11,27 @@ import {
 } from 'react-native';
 
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
-
 import { useLocalSearchParams, useRouter } from 'expo-router';
-
 import { Ionicons } from '@expo/vector-icons';
-
+import * as Clipboard from 'expo-clipboard';
 import { AuthContext } from '../../contexts/AuthContext';
-
 import { supabase } from '../../libs/supabase';
-
 import { useTheme } from '../../hooks/useTheme';
-
 import { useMessagingStore } from '../../src/store/useMessagingStore';
+import {
+  isMessageVisibleForUser,
+  fetchMessagesWithReplies,
+  softDeleteMessageForUser,
+  deleteMessageForEveryone,
+} from '../../libs/messageUtils';
+import { isUserBlocked } from '../../libs/blockUtils';
+import { FlashList } from '@shopify/flash-list';
 
 import ThemedView from '../../components/ThemedView';
-
 import ThemedText from '../../components/ThemedText';
+import MessageBubble from '../../components/messages/MessageBubble';
+import MessageActionMenu from '../../components/messages/MessageActionMenu';
+import ReplyPreviewBar from '../../components/messages/ReplyPreviewBar';
 
 const formatMessageTime = (dateString) => {
   const date = new Date(dateString);
@@ -70,6 +75,7 @@ const ChatScreen = () => {
   const router = useRouter();
 
   const flashListRef = useRef(null);
+  const inputRef = useRef(null);
 
   const [otherProfile, setOtherProfile] = useState(null);
 
@@ -78,6 +84,17 @@ const ChatScreen = () => {
   const [inputText, setInputText] = useState('');
 
   const [loading, setLoading] = useState(true);
+
+  const [isBlocked, setIsBlocked] = useState(false);
+
+  const [replyingTo, setReplyingTo] = useState(null);
+
+  const [actionMenu, setActionMenu] = useState({
+    visible: false,
+    message: null,
+    anchor: null,
+    isMine: false,
+  });
 
   const fetchOtherProfile = useCallback(async () => {
     const { data, error } = await supabase
@@ -97,23 +114,18 @@ const ChatScreen = () => {
     if (!user?.id || !otherUserId) return;
 
     try {
-      const { data, error } = await supabase
+      const data = await fetchMessagesWithReplies(
+        supabase,
+        user.id,
+        otherUserId
+      );
 
-        .from('messages')
+      setMessages(data);
 
-        .select('*')
-
-        .or(
-          `and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`
-        )
-
-        .order('created_at', { ascending: true });
-
-      if (error) throw error;
-
-      setMessages(data || []);
+      const blocked = await isUserBlocked(supabase, user.id, otherUserId);
+      setIsBlocked(blocked);
     } catch (err) {
-      console.error('Mesajlar yüklenirken hata:', err);
+      console.error('[fetchMessages] Mesajlar yüklenirken hata:', err);
     } finally {
       setLoading(false);
     }
@@ -135,7 +147,7 @@ const ChatScreen = () => {
       .eq('is_read', false);
 
     if (error) {
-      console.error('Okundu işaretlenirken hata:', error);
+      console.error('[markAsRead] Okundu işaretlenirken hata:', error);
 
       return;
     }
@@ -171,9 +183,14 @@ const ChatScreen = () => {
           filter: `receiver_id=eq.${user.id}`,
         },
 
-        (payload) => {
+        async (payload) => {
           if (payload.new.sender_id === otherUserId) {
-            setMessages((prev) => [...prev, payload.new]);
+            const blocked = await isUserBlocked(supabase, user.id, otherUserId);
+            if (blocked) return;
+
+            if (isMessageVisibleForUser(payload.new, user.id)) {
+              setMessages((prev) => [...prev, payload.new]);
+            }
 
             markAsRead();
           }
@@ -194,9 +211,78 @@ const ChatScreen = () => {
         },
 
         (payload) => {
-          setMessages((prev) =>
-            prev.map((m) => (m.id === payload.new.id ? payload.new : m))
-          );
+          setMessages((prev) => {
+            if (!isMessageVisibleForUser(payload.new, user.id)) {
+              return prev.filter((m) => m.id !== payload.new.id);
+            }
+
+            return prev.map((m) =>
+              m.id === payload.new.id ? payload.new : m
+            );
+          });
+        }
+      )
+
+      .on(
+        'postgres_changes',
+
+        {
+          event: 'UPDATE',
+
+          schema: 'public',
+
+          table: 'messages',
+
+          filter: `receiver_id=eq.${user.id}`,
+        },
+
+        (payload) => {
+          if (
+            payload.new.sender_id !== otherUserId &&
+            payload.new.receiver_id !== otherUserId
+          ) {
+            return;
+          }
+
+          setMessages((prev) => {
+            if (!isMessageVisibleForUser(payload.new, user.id)) {
+              return prev.filter((m) => m.id !== payload.new.id);
+            }
+
+            const exists = prev.some((m) => m.id === payload.new.id);
+            if (!exists) {
+              return [...prev, payload.new];
+            }
+
+            return prev.map((m) =>
+              m.id === payload.new.id ? payload.new : m
+            );
+          });
+        }
+      )
+
+      .on(
+        'postgres_changes',
+
+        {
+          event: 'DELETE',
+
+          schema: 'public',
+
+          table: 'messages',
+        },
+
+        (payload) => {
+          const deleted = payload.old;
+          const isInThisChat =
+            (deleted.sender_id === user.id &&
+              deleted.receiver_id === otherUserId) ||
+            (deleted.sender_id === otherUserId &&
+              deleted.receiver_id === user.id);
+
+          if (!isInThisChat) return;
+
+          setMessages((prev) => prev.filter((m) => m.id !== deleted.id));
         }
       )
 
@@ -210,9 +296,12 @@ const ChatScreen = () => {
   const handleSend = async () => {
     const content = inputText.trim();
 
-    if (!content || !user?.id) return;
+    if (!content || !user?.id || isBlocked) return;
+
+    const replyToId = replyingTo?.id ?? null;
 
     setInputText('');
+    setReplyingTo(null);
 
     const optimisticMsg = {
       id: `temp-${Date.now()}`,
@@ -226,6 +315,20 @@ const ChatScreen = () => {
       created_at: new Date().toISOString(),
 
       is_read: false,
+
+      deleted_for_sender: false,
+
+      deleted_for_receiver: false,
+
+      reply_to_id: replyToId,
+
+      reply_to: replyingTo
+        ? {
+            id: replyingTo.id,
+            content: replyingTo.content,
+            sender_id: replyingTo.sender_id,
+          }
+        : null,
     };
 
     setMessages((prev) => [...prev, optimisticMsg]);
@@ -241,11 +344,15 @@ const ChatScreen = () => {
         created_at: new Date().toISOString(),
 
         is_read: false,
+
+        reply_to_id: replyToId,
       });
 
       if (error) throw error;
+
+      fetchMessages();
     } catch (err) {
-      console.error('Mesaj gönderilirken hata:', err);
+      console.error('[handleSend] Mesaj gönderilirken hata:', err);
 
       Alert.alert('Hata', 'Mesaj gönderilemedi.');
 
@@ -253,47 +360,123 @@ const ChatScreen = () => {
     }
   };
 
+  const handleDeleteForMe = useCallback(
+    async (message) => {
+      if (!user?.id) return;
+
+      setMessages((prev) => prev.filter((m) => m.id !== message.id));
+
+      try {
+        await softDeleteMessageForUser(supabase, message, user.id);
+        useMessagingStore.getState().fetchUnreadCount(user.id);
+      } catch (error) {
+        console.error('[handleDeleteForMe] Mesaj silinirken hata:', error);
+        Alert.alert('Hata', 'Mesaj silinemedi. Lütfen tekrar deneyin.');
+        fetchMessages();
+      }
+    },
+    [user?.id, fetchMessages]
+  );
+
+  const handleDeleteForEveryone = useCallback(
+    async (message) => {
+      setMessages((prev) => prev.filter((m) => m.id !== message.id));
+
+      try {
+        await deleteMessageForEveryone(supabase, message.id);
+      } catch (error) {
+        console.error(
+          '[handleDeleteForEveryone] Mesaj silinirken hata:',
+          error
+        );
+        Alert.alert('Hata', 'Mesaj herkesten silinemedi. Lütfen tekrar deneyin.');
+        fetchMessages();
+      }
+    },
+    [fetchMessages]
+  );
+
+  const handleShowDeleteOptions = useCallback(
+    (message) => {
+      const isMine = message.sender_id === user.id;
+      const options = [
+        {
+          text: 'Benden sil',
+          onPress: () => handleDeleteForMe(message),
+        },
+        { text: 'İptal', style: 'cancel' },
+      ];
+
+      if (isMine) {
+        options.unshift({
+          text: 'Herkesten sil',
+          style: 'destructive',
+          onPress: () => handleDeleteForEveryone(message),
+        });
+      }
+
+      Alert.alert('Mesajı sil', 'Bu mesajı nasıl silmek istiyorsunuz?', options);
+    },
+    [user.id, handleDeleteForMe, handleDeleteForEveryone]
+  );
+
+  const handleReply = useCallback((message) => {
+    setReplyingTo(message);
+    inputRef.current?.focus();
+  }, []);
+
+  const handleLongPress = useCallback((message, anchor) => {
+    setActionMenu({
+      visible: true,
+      message,
+      anchor,
+      isMine: message.sender_id === user.id,
+    });
+  }, [user.id]);
+
+  const handleCopy = useCallback(async (content) => {
+    try {
+      await Clipboard.setStringAsync(content);
+    } catch (error) {
+      console.error('[handleCopy] Kopyalama hatası:', error);
+      Alert.alert('Hata', 'Mesaj kopyalanamadı.');
+    }
+  }, []);
+
+  const closeActionMenu = useCallback(() => {
+    setActionMenu({
+      visible: false,
+      message: null,
+      anchor: null,
+      isMine: false,
+    });
+  }, []);
+
   const fullName = otherProfile?.full_name || 'Kullanıcı';
 
   const avatarUrl =
     otherProfile?.avatar_url ||
     `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2B62E5&color=fff&size=150`;
 
-  const renderMessage = ({ item }) => {
-    const isMine = item.sender_id === user.id;
+  const renderMessage = useCallback(
+    ({ item }) => {
+      const isMine = item.sender_id === user.id;
 
-    return (
-      <View
-        style={[
-          styles.bubble,
-
-          isMine
-            ? [styles.bubbleMine, { backgroundColor: colors.primary }]
-            : [styles.bubbleTheirs, { backgroundColor: '#1e293b' }],
-        ]}
-      >
-        <ThemedText style={isMine ? [styles.textMine] : [styles.textTheirs]}>
-          {item.content}
-        </ThemedText>
-
-        <View style={styles.metaRow}>
-          <ThemedText style={styles.metaText}>
-            {formatMessageTime(item.created_at)}
-          </ThemedText>
-
-          {isMine && (
-            <View style={styles.readStatus}>
-              <Ionicons
-                name={item.is_read ? 'checkmark-done' : 'checkmark'}
-                size={14}
-                color={item.is_read ? '#A5F3FC' : 'rgba(255,255,255,0.7)'}
-              />
-            </View>
-          )}
-        </View>
-      </View>
-    );
-  };
+      return (
+        <MessageBubble
+          message={item}
+          isMine={isMine}
+          colors={colors}
+          currentUserId={user.id}
+          otherUserName={fullName}
+          formatMessageTime={formatMessageTime}
+          onLongPress={handleLongPress}
+          onReply={handleReply}
+        />
+      );
+    },
+    [user.id, colors, fullName, handleLongPress, handleReply]
+  );
 
   if (loading) {
     return (
@@ -334,21 +517,54 @@ const ChatScreen = () => {
           }
         />
 
+        {isBlocked && (
+          <View style={styles.blockedBanner}>
+            <ThemedText style={styles.blockedText}>
+              Bu kullanıcıyla mesajlaşma engellendi.
+            </ThemedText>
+          </View>
+        )}
+
+        <ReplyPreviewBar
+          message={replyingTo}
+          senderName={
+            replyingTo?.sender_id === user.id ? 'Sen' : fullName
+          }
+          colors={colors}
+          onCancel={() => setReplyingTo(null)}
+        />
+
         <View style={[styles.inputRow, { borderColor: colors.borderColor }]}>
           <TextInput
+            ref={inputRef}
             style={[styles.input, { color: colors.title }]}
-            placeholder='Mesaj yaz'
+            placeholder={isBlocked ? 'Mesaj gönderilemez' : 'Mesaj yaz'}
             placeholderTextColor='#9CA3AF'
             value={inputText}
             onChangeText={setInputText}
             multiline
+            editable={!isBlocked}
           />
 
-          <Pressable onPress={handleSend} style={styles.sendButton}>
+          <Pressable
+            onPress={handleSend}
+            style={[styles.sendButton, isBlocked && styles.sendButtonDisabled]}
+            disabled={isBlocked}
+          >
             <Ionicons name='send' size={20} color='#FFF' />
           </Pressable>
         </View>
       </KeyboardAvoidingView>
+
+      <MessageActionMenu
+        visible={actionMenu.visible}
+        anchor={actionMenu.anchor}
+        isMine={actionMenu.isMine}
+        onClose={closeActionMenu}
+        onReply={() => handleReply(actionMenu.message)}
+        onCopy={() => handleCopy(actionMenu.message?.content)}
+        onDelete={() => handleShowDeleteOptions(actionMenu.message)}
+      />
     </ThemedView>
   );
 };
@@ -382,56 +598,17 @@ const styles = StyleSheet.create({
 
   messagesList: { padding: 16, gap: 8 },
 
-  bubble: {
-    maxWidth: '75%',
-
-    borderRadius: 16,
-
-    paddingHorizontal: 14,
-
+  blockedBanner: {
+    paddingHorizontal: 16,
     paddingVertical: 10,
-
-    marginBottom: 4,
+    backgroundColor: 'rgba(239,68,68,0.12)',
   },
 
-  bubbleMine: { alignSelf: 'flex-end', borderBottomRightRadius: 4 },
-
-  bubbleTheirs: { alignSelf: 'flex-start', borderBottomLeftRadius: 4 },
-
-  textMine: { color: '#FFF', fontSize: 15, fontWeight: 'bold' },
-
-  textTheirs: { color: '#FFF', fontSize: 15, fontWeight: 'bold' },
-
-  metaRow: {
-    flexDirection: 'row',
-
-    alignItems: 'center',
-
-    justifyContent: 'flex-end',
-
-    marginTop: 4,
-
-    gap: 6,
-
-    flexWrap: 'wrap',
-  },
-
-  metaText: {
-    fontSize: 11,
-    fontWeight: 'bold',
-    color: '#94a3b8',
-  },
-
-  metaTextMine: {
-    color: '#94a3b8',
-  },
-
-  readStatus: {
-    flexDirection: 'row',
-
-    alignItems: 'center',
-
-    gap: 2,
+  blockedText: {
+    color: '#EF4444',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
   },
 
   inputRow: {
@@ -476,5 +653,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
 
     alignItems: 'center',
+  },
+
+  sendButtonDisabled: {
+    opacity: 0.4,
   },
 });

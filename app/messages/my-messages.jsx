@@ -1,19 +1,25 @@
 import {
   View,
   Pressable,
-  Image,
   StyleSheet,
   ActivityIndicator,
+  Alert,
 } from 'react-native';
-import { useCallback, useContext, useEffect, useState } from 'react';
+import { useCallback, useContext, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../../contexts/AuthContext';
 import { supabase } from '../../libs/supabase';
 import { useTheme } from '../../hooks/useTheme';
+import {
+  isMessageVisibleForUser,
+  softDeleteConversationForUser,
+} from '../../libs/messageUtils';
+import { blockUser, getBlockedUserIds } from '../../libs/blockUtils';
 
 import ThemedView from '../../components/ThemedView';
 import ThemedText from '../../components/ThemedText';
+import SwipeableConversationRow from '../../components/messages/SwipeableConversationRow';
 import { FlashList } from '@shopify/flash-list';
 
 const MessagesList = () => {
@@ -23,6 +29,8 @@ const MessagesList = () => {
 
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [blockedIds, setBlockedIds] = useState(new Set());
+  const swipeableRefs = useRef({});
 
   const fetchConversations = useCallback(async () => {
     if (!user?.id) return;
@@ -36,8 +44,12 @@ const MessagesList = () => {
 
       if (error) throw error;
 
+      const visibleMessages = (data || []).filter((msg) =>
+        isMessageVisibleForUser(msg, user.id)
+      );
+
       const lastMessageMap = new Map();
-      (data || []).forEach((msg) => {
+      visibleMessages.forEach((msg) => {
         const otherId =
           msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
         if (!lastMessageMap.has(otherId)) {
@@ -74,8 +86,11 @@ const MessagesList = () => {
         );
 
       setConversations(list);
+
+      const blocked = await getBlockedUserIds(supabase, user.id);
+      setBlockedIds(new Set(blocked));
     } catch (err) {
-      console.error('Konuşmalar yüklenirken hata:', err);
+      console.error('[fetchConversations] Konuşmalar yüklenirken hata:', err);
     } finally {
       setLoading(false);
     }
@@ -85,39 +100,69 @@ const MessagesList = () => {
     fetchConversations();
   }, [fetchConversations]);
 
-  const renderItem = ({ item }) => {
-    const fullName = item.profile?.full_name || 'Kullanıcı';
-    const avatarUrl =
-      item.profile?.avatar_url ||
-      `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2B62E5&color=fff&size=150`;
-    const isUnread =
-      !item.lastMessage.is_read && item.lastMessage.receiver_id === user.id;
+  const handleBlockUser = useCallback(
+    async (otherUserId) => {
+      if (!user?.id) return;
 
-    return (
-      <Pressable
-        style={[styles.row, { borderColor: colors.borderColor }]}
+      try {
+        await blockUser(supabase, user.id, otherUserId);
+        setBlockedIds((prev) => new Set([...prev, otherUserId]));
+      } catch (error) {
+        console.error('[handleBlockUser] Engelleme hatası:', error);
+        Alert.alert('Hata', 'Kullanıcı engellenemedi. Lütfen tekrar deneyin.');
+      }
+    },
+    [user?.id]
+  );
+
+  const handleDeleteConversation = useCallback(
+    async (otherUserId) => {
+      if (!user?.id) return;
+
+      setConversations((prev) =>
+        prev.filter((item) => item.otherUserId !== otherUserId)
+      );
+
+      try {
+        await softDeleteConversationForUser(supabase, user.id, otherUserId);
+      } catch (error) {
+        console.error(
+          '[handleDeleteConversation] Konuşma silinirken hata:',
+          error
+        );
+        Alert.alert('Hata', 'Konuşma silinemedi. Lütfen tekrar deneyin.');
+        fetchConversations();
+      }
+    },
+    [user?.id, fetchConversations]
+  );
+
+  const handleSwipeableWillOpen = useCallback((otherUserId) => {
+    Object.entries(swipeableRefs.current).forEach(([id, ref]) => {
+      if (id !== otherUserId && ref?.close) {
+        ref.close();
+      }
+    });
+  }, []);
+
+  const renderItem = useCallback(
+    ({ item }) => (
+      <SwipeableConversationRow
+        item={item}
+        userId={user.id}
+        colors={colors}
+        isBlocked={blockedIds.has(item.otherUserId)}
+        swipeableRef={(ref) => {
+          swipeableRefs.current[item.otherUserId] = ref;
+        }}
         onPress={() => router.push(`/messages/${item.otherUserId}`)}
-      >
-        <Image source={{ uri: avatarUrl }} style={styles.avatar} />
-        <View style={styles.textWrapper}>
-          <ThemedText style={[styles.name, { color: colors.title }]}>
-            {fullName}
-          </ThemedText>
-          <ThemedText
-            style={[
-              styles.preview,
-              isUnread && { fontWeight: '700', color: colors.title },
-              { color: colors.title },
-            ]}
-            numberOfLines={1}
-          >
-            {item.lastMessage.content}
-          </ThemedText>
-        </View>
-        {isUnread && <View style={styles.unreadDot} />}
-      </Pressable>
-    );
-  };
+        onDelete={handleDeleteConversation}
+        onBlock={handleBlockUser}
+        onSwipeableWillOpen={() => handleSwipeableWillOpen(item.otherUserId)}
+      />
+    ),
+    [user.id, colors, router, blockedIds, handleDeleteConversation, handleBlockUser, handleSwipeableWillOpen]
+  );
 
   return (
     <ThemedView style={styles.container} safe={true}>
@@ -188,36 +233,5 @@ const styles = StyleSheet.create({
   emptyText: {
     color: '#9CA3AF',
     fontSize: 15,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    gap: 12,
-  },
-  avatar: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-  },
-  textWrapper: {
-    flex: 1,
-  },
-  name: {
-    fontSize: 15,
-    fontWeight: '600',
-  },
-  preview: {
-    fontSize: 13,
-    color: '#9CA3AF',
-    marginTop: 2,
-  },
-  unreadDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: '#2B62E5',
   },
 });

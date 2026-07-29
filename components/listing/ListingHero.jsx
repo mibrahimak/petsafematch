@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
+import { colors } from '../../constants/colors';
 
 const ListingHero = ({
   imageUrl,
@@ -26,7 +27,13 @@ const ListingHero = ({
 
       <View style={[styles.navRow, { paddingTop: insets.top + 8 }]}>
         <Pressable
-          style={[styles.navButton, { borderColor: colors.borderColor }]}
+          style={[
+            styles.navButton,
+            {
+              borderColor: colors.borderColor,
+              backgroundColor: colors.navBackground,
+            },
+          ]}
           onPress={onBack}
         >
           <Ionicons name='arrow-back' size={20} color={colors.title} />
@@ -34,7 +41,13 @@ const ListingHero = ({
 
         <View style={styles.navActions}>
           <Pressable
-            style={[styles.navButton, { borderColor: colors.borderColor }]}
+            style={[
+              styles.navButton,
+              {
+                borderColor: colors.borderColor,
+                backgroundColor: colors.navBackground,
+              },
+            ]}
             onPress={onShare}
           >
             <Ionicons name='share-outline' size={18} color={colors.title} />
@@ -44,7 +57,9 @@ const ListingHero = ({
             style={[
               styles.navButton,
               {
-                borderColor: isFavorite ? colors.warning + '55' : colors.borderColor,
+                borderColor: isFavorite
+                  ? colors.warning + '55'
+                  : colors.borderColor,
                 backgroundColor: isFavorite
                   ? colors.warningSurface
                   : 'rgba(15,23,42,0.65)',
@@ -107,7 +122,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: 'rgba(15,23,42,0.65)',
+
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',

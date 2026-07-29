@@ -1,16 +1,10 @@
-import {
-  View,
-  Pressable,
-  StyleSheet,
-  ActivityIndicator,
-  Alert,
-} from 'react-native';
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import { AuthContext } from '../../contexts/AuthContext';
 import { supabase } from '../../libs/supabase';
 import { useTheme } from '../../hooks/useTheme';
+import { FlashList } from '@shopify/flash-list';
 import {
   isMessageVisibleForUser,
   softDeleteConversationForUser,
@@ -18,9 +12,11 @@ import {
 import { blockUser, getBlockedUserIds } from '../../libs/blockUtils';
 
 import ThemedView from '../../components/ThemedView';
-import ThemedText from '../../components/ThemedText';
+import MessagesListHeader from '../../components/messages/MessagesListHeader';
+import MessagesSearchBar from '../../components/messages/MessagesSearchBar';
+import OnlineUsersStrip from '../../components/messages/OnlineUsersStrip';
+import MessagesEmptyState from '../../components/messages/MessagesEmptyState';
 import SwipeableConversationRow from '../../components/messages/SwipeableConversationRow';
-import { FlashList } from '@shopify/flash-list';
 
 const MessagesList = () => {
   const { user } = useContext(AuthContext);
@@ -30,6 +26,7 @@ const MessagesList = () => {
   const [conversations, setConversations] = useState([]);
   const [loading, setLoading] = useState(true);
   const [blockedIds, setBlockedIds] = useState(new Set());
+  const [searchQuery, setSearchQuery] = useState('');
   const swipeableRefs = useRef({});
 
   const fetchConversations = useCallback(async () => {
@@ -49,11 +46,25 @@ const MessagesList = () => {
       );
 
       const lastMessageMap = new Map();
+      const unreadCountMap = new Map();
+      const listingIdMap = new Map();
+
       visibleMessages.forEach((msg) => {
         const otherId =
           msg.sender_id === user.id ? msg.receiver_id : msg.sender_id;
+
         if (!lastMessageMap.has(otherId)) {
           lastMessageMap.set(otherId, msg);
+          if (msg.listing_id) {
+            listingIdMap.set(otherId, msg.listing_id);
+          }
+        }
+
+        if (msg.receiver_id === user.id && !msg.is_read) {
+          unreadCountMap.set(
+            msg.sender_id,
+            (unreadCountMap.get(msg.sender_id) || 0) + 1
+          );
         }
       });
 
@@ -66,18 +77,37 @@ const MessagesList = () => {
 
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url')
+        .select('id, full_name, avatar_url, last_seen_at')
         .in('id', otherIds);
 
       if (profilesError) throw profilesError;
 
       const profileMap = new Map((profilesData || []).map((p) => [p.id, p]));
 
+      const listingIds = Array.from(new Set(listingIdMap.values())).filter(
+        Boolean
+      );
+      let listingMap = new Map();
+
+      if (listingIds.length > 0) {
+        const { data: listingsData, error: listingsError } = await supabase
+          .from('listings')
+          .select('id, name')
+          .in('id', listingIds);
+
+        if (listingsError) throw listingsError;
+        listingMap = new Map((listingsData || []).map((l) => [l.id, l]));
+      }
+
       const list = otherIds
         .map((id) => ({
           otherUserId: id,
           lastMessage: lastMessageMap.get(id),
           profile: profileMap.get(id),
+          listing: listingIdMap.get(id)
+            ? listingMap.get(listingIdMap.get(id))
+            : null,
+          unreadCount: unreadCountMap.get(id) || 0,
         }))
         .sort(
           (a, b) =>
@@ -100,6 +130,20 @@ const MessagesList = () => {
     fetchConversations();
   }, [fetchConversations]);
 
+  const totalUnreadCount = useMemo(
+    () => conversations.reduce((sum, item) => sum + item.unreadCount, 0),
+    [conversations]
+  );
+
+  const filteredConversations = useMemo(() => {
+    const query = searchQuery.trim().toLowerCase();
+    if (!query) return conversations;
+
+    return conversations.filter((item) =>
+      (item.profile?.full_name || '').toLowerCase().includes(query)
+    );
+  }, [conversations, searchQuery]);
+
   const handleBlockUser = useCallback(
     async (otherUserId) => {
       if (!user?.id) return;
@@ -109,7 +153,6 @@ const MessagesList = () => {
         setBlockedIds((prev) => new Set([...prev, otherUserId]));
       } catch (error) {
         console.error('[handleBlockUser] Engelleme hatası:', error);
-        Alert.alert('Hata', 'Kullanıcı engellenemedi. Lütfen tekrar deneyin.');
       }
     },
     [user?.id]
@@ -126,11 +169,7 @@ const MessagesList = () => {
       try {
         await softDeleteConversationForUser(supabase, user.id, otherUserId);
       } catch (error) {
-        console.error(
-          '[handleDeleteConversation] Konuşma silinirken hata:',
-          error
-        );
-        Alert.alert('Hata', 'Konuşma silinemedi. Lütfen tekrar deneyin.');
+        console.error('[handleDeleteConversation] Konuşma silinirken hata:', error);
         fetchConversations();
       }
     },
@@ -145,6 +184,13 @@ const MessagesList = () => {
     });
   }, []);
 
+  const handleOpenConversation = useCallback(
+    (otherUserId) => {
+      router.push(`/messages/${otherUserId}`);
+    },
+    [router]
+  );
+
   const renderItem = useCallback(
     ({ item }) => (
       <SwipeableConversationRow
@@ -152,50 +198,70 @@ const MessagesList = () => {
         userId={user.id}
         colors={colors}
         isBlocked={blockedIds.has(item.otherUserId)}
+        listing={item.listing}
+        unreadCount={item.unreadCount}
         swipeableRef={(ref) => {
           swipeableRefs.current[item.otherUserId] = ref;
         }}
-        onPress={() => router.push(`/messages/${item.otherUserId}`)}
+        onPress={() => handleOpenConversation(item.otherUserId)}
         onDelete={handleDeleteConversation}
         onBlock={handleBlockUser}
         onSwipeableWillOpen={() => handleSwipeableWillOpen(item.otherUserId)}
       />
     ),
-    [user.id, colors, router, blockedIds, handleDeleteConversation, handleBlockUser, handleSwipeableWillOpen]
+    [
+      user.id,
+      colors,
+      blockedIds,
+      handleOpenConversation,
+      handleDeleteConversation,
+      handleBlockUser,
+      handleSwipeableWillOpen,
+    ]
+  );
+
+  const listHeader = useMemo(
+    () => (
+      <View>
+        <MessagesSearchBar value={searchQuery} onChangeText={setSearchQuery} />
+        <OnlineUsersStrip
+          conversations={conversations}
+          onPressConversation={handleOpenConversation}
+        />
+        {conversations.length > 0 ? (
+          <View
+            style={[styles.divider, { backgroundColor: colors.borderColor }]}
+          />
+        ) : null}
+      </View>
+    ),
+    [searchQuery, conversations, colors.borderColor, handleOpenConversation]
   );
 
   return (
     <ThemedView style={styles.container} safe={true}>
-      <View style={[styles.header, { borderColor: colors.borderColor }]}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name='arrow-back' size={24} color={colors.title} />
-        </Pressable>
-        <ThemedText style={styles.headerTitle} title={true}>
-          Mesajlar
-        </ThemedText>
-        <View style={styles.backButton} />
-      </View>
+      <MessagesListHeader
+        unreadCount={totalUnreadCount}
+        onBack={() => router.back()}
+      />
 
       {loading ? (
         <View style={styles.centerContainer}>
           <ActivityIndicator size='large' color={colors.primary} />
         </View>
       ) : conversations.length === 0 ? (
-        <View style={styles.centerContainer}>
-          <Ionicons
-            name='chatbubble-ellipses-outline'
-            size={64}
-            color='#9CA3AF'
-          />
-          <ThemedText style={styles.emptyText}>
-            Henüz bir mesajınız yok
-          </ThemedText>
-        </View>
+        <MessagesEmptyState />
+      ) : filteredConversations.length === 0 ? (
+        <>
+          {listHeader}
+          <MessagesEmptyState isSearchResult searchQuery={searchQuery} />
+        </>
       ) : (
         <FlashList
-          data={conversations}
+          data={filteredConversations}
           keyExtractor={(item) => item.otherUserId}
           renderItem={renderItem}
+          ListHeaderComponent={listHeader}
           showsVerticalScrollIndicator={false}
         />
       )}
@@ -209,29 +275,14 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 12,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-  },
-  backButton: {
-    width: 32,
-  },
-  headerTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-  },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 12,
   },
-  emptyText: {
-    color: '#9CA3AF',
-    fontSize: 15,
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 16,
+    marginBottom: 4,
   },
 });

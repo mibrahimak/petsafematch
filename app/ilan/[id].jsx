@@ -116,7 +116,7 @@ export default function ListingDetailScreen() {
       Alert.alert('Uyarı', 'Kendi ilanınıza mesaj gönderemezsiniz.');
       return;
     }
-    router.push(`/messages/${pet.userId}`);
+    router.push(`/messages/${pet.userId}?listingId=${pet.id}`);
   }, [user?.id, pet?.userId, router]);
 
   const handleShare = useCallback(async () => {

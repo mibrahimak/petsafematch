@@ -10,6 +10,7 @@ import { signInWithProvider as oauthSignIn } from '../libs/oauth';
 import { useFavoriteStore } from '../src/store/useFavoriteStore';
 import { useNotificationStore } from '../src/store/useNotificationStore';
 import { useMessagingStore } from '../src/store/useMessagingStore';
+import PresenceTracker from '../components/PresenceTracker';
 
 export const AuthContext = createContext();
 
@@ -176,5 +177,10 @@ export const AuthProvider = ({ children }) => {
     updateProfile,
   ]);
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      {isLoggedIn ? <PresenceTracker /> : null}
+      {children}
+    </AuthContext.Provider>
+  );
 };

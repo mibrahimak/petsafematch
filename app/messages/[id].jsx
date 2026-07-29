@@ -1,8 +1,5 @@
 import {
   View,
-  Pressable,
-  Image,
-  TextInput,
   StyleSheet,
   ActivityIndicator,
   KeyboardAvoidingView,
@@ -10,9 +7,8 @@ import {
   Alert,
 } from 'react-native';
 
-import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import { AuthContext } from '../../contexts/AuthContext';
 import { supabase } from '../../libs/supabase';
@@ -25,6 +21,7 @@ import {
   deleteMessageForEveryone,
 } from '../../libs/messageUtils';
 import { isUserBlocked } from '../../libs/blockUtils';
+import { groupMessagesWithDateSeparators } from '../../utils/messageGrouping';
 import { FlashList } from '@shopify/flash-list';
 
 import ThemedView from '../../components/ThemedView';
@@ -32,15 +29,17 @@ import ThemedText from '../../components/ThemedText';
 import MessageBubble from '../../components/messages/MessageBubble';
 import MessageActionMenu from '../../components/messages/MessageActionMenu';
 import ReplyPreviewBar from '../../components/messages/ReplyPreviewBar';
+import ChatHeader from '../../components/messages/ChatHeader';
+import ChatPetContextBanner from '../../components/messages/ChatPetContextBanner';
+import ChatInputBar from '../../components/messages/ChatInputBar';
+import MessageDateSeparator from '../../components/messages/MessageDateSeparator';
 
 const formatMessageTime = (dateString) => {
   const date = new Date(dateString);
-
   const now = new Date();
 
   const time = date.toLocaleTimeString('tr-TR', {
     hour: '2-digit',
-
     minute: '2-digit',
   });
 
@@ -50,7 +49,6 @@ const formatMessageTime = (dateString) => {
     date.getFullYear() === now.getFullYear();
 
   const yesterday = new Date(now);
-
   yesterday.setDate(yesterday.getDate() - 1);
 
   const isYesterday =
@@ -59,36 +57,27 @@ const formatMessageTime = (dateString) => {
     date.getFullYear() === yesterday.getFullYear();
 
   if (isToday) return time;
-
   if (isYesterday) return `Dün ${time}`;
-
   return date.toLocaleDateString('tr-TR');
 };
 
 const ChatScreen = () => {
-  const { id: otherUserId } = useLocalSearchParams();
+  const { id: otherUserId, listingId: listingIdParam } = useLocalSearchParams();
 
   const { user } = useContext(AuthContext);
-
   const { colors } = useTheme();
-
   const router = useRouter();
 
   const flashListRef = useRef(null);
   const inputRef = useRef(null);
 
   const [otherProfile, setOtherProfile] = useState(null);
-
+  const [listing, setListing] = useState(null);
   const [messages, setMessages] = useState([]);
-
   const [inputText, setInputText] = useState('');
-
   const [loading, setLoading] = useState(true);
-
   const [isBlocked, setIsBlocked] = useState(false);
-
   const [replyingTo, setReplyingTo] = useState(null);
-
   const [actionMenu, setActionMenu] = useState({
     visible: false,
     message: null,
@@ -96,19 +85,42 @@ const ChatScreen = () => {
     isMine: false,
   });
 
+  const activeListingId = useMemo(() => {
+    if (listingIdParam) return listingIdParam;
+    const withListing = [...messages].reverse().find((msg) => msg.listing_id);
+    return withListing?.listing_id ?? null;
+  }, [listingIdParam, messages]);
+
   const fetchOtherProfile = useCallback(async () => {
     const { data, error } = await supabase
-
       .from('profiles')
-
-      .select('id, full_name, avatar_url')
-
+      .select('id, full_name, avatar_url, last_seen_at')
       .eq('id', otherUserId)
-
       .single();
 
     if (!error) setOtherProfile(data);
   }, [otherUserId]);
+
+  const fetchListing = useCallback(async (listingId) => {
+    if (!listingId) {
+      setListing(null);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('listings')
+        .select('id, name')
+        .eq('id', listingId)
+        .single();
+
+      if (error) throw error;
+      setListing(data);
+    } catch (error) {
+      console.error('[fetchListing] İlan yüklenirken hata:', error);
+      setListing(null);
+    }
+  }, []);
 
   const fetchMessages = useCallback(async () => {
     if (!user?.id || !otherUserId) return;
@@ -135,20 +147,14 @@ const ChatScreen = () => {
     if (!user?.id || !otherUserId) return;
 
     const { error } = await supabase
-
       .from('messages')
-
       .update({ is_read: true })
-
       .eq('sender_id', otherUserId)
-
       .eq('receiver_id', user.id)
-
       .eq('is_read', false);
 
     if (error) {
       console.error('[markAsRead] Okundu işaretlenirken hata:', error);
-
       return;
     }
 
@@ -157,32 +163,27 @@ const ChatScreen = () => {
 
   useEffect(() => {
     fetchOtherProfile();
-
     fetchMessages();
-
     markAsRead();
   }, [fetchOtherProfile, fetchMessages, markAsRead]);
+
+  useEffect(() => {
+    fetchListing(activeListingId);
+  }, [activeListingId, fetchListing]);
 
   useEffect(() => {
     if (!user?.id || !otherUserId) return;
 
     const channel = supabase
-
       .channel(`chat-${user.id}-${otherUserId}`)
-
       .on(
         'postgres_changes',
-
         {
           event: 'INSERT',
-
           schema: 'public',
-
           table: 'messages',
-
           filter: `receiver_id=eq.${user.id}`,
         },
-
         async (payload) => {
           if (payload.new.sender_id === otherUserId) {
             const blocked = await isUserBlocked(supabase, user.id, otherUserId);
@@ -196,20 +197,14 @@ const ChatScreen = () => {
           }
         }
       )
-
       .on(
         'postgres_changes',
-
         {
           event: 'UPDATE',
-
           schema: 'public',
-
           table: 'messages',
-
           filter: `sender_id=eq.${user.id}`,
         },
-
         (payload) => {
           setMessages((prev) => {
             if (!isMessageVisibleForUser(payload.new, user.id)) {
@@ -222,20 +217,14 @@ const ChatScreen = () => {
           });
         }
       )
-
       .on(
         'postgres_changes',
-
         {
           event: 'UPDATE',
-
           schema: 'public',
-
           table: 'messages',
-
           filter: `receiver_id=eq.${user.id}`,
         },
-
         (payload) => {
           if (
             payload.new.sender_id !== otherUserId &&
@@ -260,18 +249,13 @@ const ChatScreen = () => {
           });
         }
       )
-
       .on(
         'postgres_changes',
-
         {
           event: 'DELETE',
-
           schema: 'public',
-
           table: 'messages',
         },
-
         (payload) => {
           const deleted = payload.old;
           const isInThisChat =
@@ -285,7 +269,6 @@ const ChatScreen = () => {
           setMessages((prev) => prev.filter((m) => m.id !== deleted.id));
         }
       )
-
       .subscribe();
 
     return () => {
@@ -299,29 +282,22 @@ const ChatScreen = () => {
     if (!content || !user?.id || isBlocked) return;
 
     const replyToId = replyingTo?.id ?? null;
+    const listingId = activeListingId ?? null;
 
     setInputText('');
     setReplyingTo(null);
 
     const optimisticMsg = {
       id: `temp-${Date.now()}`,
-
       sender_id: user.id,
-
       receiver_id: otherUserId,
-
       content,
-
       created_at: new Date().toISOString(),
-
       is_read: false,
-
       deleted_for_sender: false,
-
       deleted_for_receiver: false,
-
       reply_to_id: replyToId,
-
+      listing_id: listingId,
       reply_to: replyingTo
         ? {
             id: replyingTo.id,
@@ -336,16 +312,12 @@ const ChatScreen = () => {
     try {
       const { error } = await supabase.from('messages').insert({
         sender_id: user.id,
-
         receiver_id: otherUserId,
-
         content,
-
         created_at: new Date().toISOString(),
-
         is_read: false,
-
         reply_to_id: replyToId,
+        listing_id: listingId,
       });
 
       if (error) throw error;
@@ -353,9 +325,7 @@ const ChatScreen = () => {
       fetchMessages();
     } catch (err) {
       console.error('[handleSend] Mesaj gönderilirken hata:', err);
-
       Alert.alert('Hata', 'Mesaj gönderilemedi.');
-
       setMessages((prev) => prev.filter((m) => m.id !== optimisticMsg.id));
     }
   };
@@ -432,7 +402,7 @@ const ChatScreen = () => {
       anchor,
       isMine: message.sender_id === user.id,
     });
-  }, [user.id]);
+  }, []);
 
   const handleCopy = useCallback(async (content) => {
     try {
@@ -456,15 +426,25 @@ const ChatScreen = () => {
 
   const avatarUrl =
     otherProfile?.avatar_url ||
-    `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=2B62E5&color=fff&size=150`;
+    `https://ui-avatars.com/api/?name=${encodeURIComponent(fullName)}&background=5046e5&color=fff&size=150`;
 
-  const renderMessage = useCallback(
+  const listItems = useMemo(
+    () => groupMessagesWithDateSeparators(messages),
+    [messages]
+  );
+
+  const renderItem = useCallback(
     ({ item }) => {
-      const isMine = item.sender_id === user.id;
+      if (item.type === 'date') {
+        return <MessageDateSeparator label={item.dateLabel} />;
+      }
+
+      const message = item.message;
+      const isMine = message.sender_id === user.id;
 
       return (
         <MessageBubble
-          message={item}
+          message={message}
           isMine={isMine}
           colors={colors}
           currentUserId={user.id}
@@ -488,19 +468,14 @@ const ChatScreen = () => {
 
   return (
     <ThemedView style={styles.container} safe={true}>
-      <View style={[styles.header, { borderColor: colors.borderColor }]}>
-        <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name='arrow-back' size={24} color={colors.title} />
-        </Pressable>
+      <ChatHeader
+        fullName={fullName}
+        avatarUrl={avatarUrl}
+        lastSeenAt={otherProfile?.last_seen_at}
+        onBack={() => router.back()}
+      />
 
-        <Image source={{ uri: avatarUrl }} style={styles.headerAvatar} />
-
-        <ThemedText style={[styles.headerName, { color: colors.title }]}>
-          {fullName}
-        </ThemedText>
-
-        <View style={styles.backButton} />
-      </View>
+      <ChatPetContextBanner petName={listing?.name} />
 
       <KeyboardAvoidingView
         style={styles.container}
@@ -508,22 +483,22 @@ const ChatScreen = () => {
       >
         <FlashList
           ref={flashListRef}
-          data={messages}
+          data={listItems}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={renderMessage}
+          renderItem={renderItem}
           contentContainerStyle={styles.messagesList}
           onContentSizeChange={() =>
             flashListRef.current?.scrollToEnd({ animated: true })
           }
         />
 
-        {isBlocked && (
+        {isBlocked ? (
           <View style={styles.blockedBanner}>
             <ThemedText style={styles.blockedText}>
               Bu kullanıcıyla mesajlaşma engellendi.
             </ThemedText>
           </View>
-        )}
+        ) : null}
 
         <ReplyPreviewBar
           message={replyingTo}
@@ -534,26 +509,14 @@ const ChatScreen = () => {
           onCancel={() => setReplyingTo(null)}
         />
 
-        <View style={[styles.inputRow, { borderColor: colors.borderColor }]}>
-          <TextInput
-            ref={inputRef}
-            style={[styles.input, { color: colors.title }]}
-            placeholder={isBlocked ? 'Mesaj gönderilemez' : 'Mesaj yaz'}
-            placeholderTextColor='#9CA3AF'
-            value={inputText}
-            onChangeText={setInputText}
-            multiline
-            editable={!isBlocked}
-          />
-
-          <Pressable
-            onPress={handleSend}
-            style={[styles.sendButton, isBlocked && styles.sendButtonDisabled]}
-            disabled={isBlocked}
-          >
-            <Ionicons name='send' size={20} color='#FFF' />
-          </Pressable>
-        </View>
+        <ChatInputBar
+          inputRef={inputRef}
+          value={inputText}
+          onChangeText={setInputText}
+          onSend={handleSend}
+          editable={!isBlocked}
+          placeholder={isBlocked ? 'Mesaj gönderilemez' : 'Mesaj yaz'}
+        />
       </KeyboardAvoidingView>
 
       <MessageActionMenu
@@ -573,89 +536,17 @@ export default ChatScreen;
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-
-  header: {
-    flexDirection: 'row',
-
-    alignItems: 'center',
-
-    paddingHorizontal: 12,
-
-    paddingVertical: 12,
-
-    borderBottomWidth: 1,
-
-    gap: 10,
-  },
-
-  backButton: { width: 32 },
-
-  headerAvatar: { width: 32, height: 32, borderRadius: 16 },
-
-  headerName: { fontSize: 16, fontWeight: '700', flex: 1 },
-
-  messagesList: { padding: 16, gap: 8 },
-
+  messagesList: { padding: 16, paddingBottom: 8 },
   blockedBanner: {
     paddingHorizontal: 16,
     paddingVertical: 10,
     backgroundColor: 'rgba(239,68,68,0.12)',
   },
-
   blockedText: {
     color: '#EF4444',
     fontSize: 13,
     fontWeight: '600',
     textAlign: 'center',
-  },
-
-  inputRow: {
-    flexDirection: 'row',
-
-    alignItems: 'flex-end',
-
-    paddingHorizontal: 12,
-
-    paddingVertical: 10,
-
-    borderTopWidth: 1,
-
-    gap: 10,
-  },
-
-  input: {
-    flex: 1,
-
-    maxHeight: 100,
-
-    fontSize: 15,
-
-    paddingHorizontal: 14,
-
-    paddingVertical: 10,
-
-    borderRadius: 20,
-
-    backgroundColor: 'rgba(120,120,120,0.15)',
-  },
-
-  sendButton: {
-    width: 40,
-
-    height: 40,
-
-    borderRadius: 20,
-
-    backgroundColor: '#2B62E5',
-
-    justifyContent: 'center',
-
-    alignItems: 'center',
-  },
-
-  sendButtonDisabled: {
-    opacity: 0.4,
   },
 });

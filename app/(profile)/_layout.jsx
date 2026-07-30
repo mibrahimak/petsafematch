@@ -34,6 +34,36 @@ export default function ProfileLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name='help-support'
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name='faq'
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name='contact-support'
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name='community-rules'
+        options={{
+          headerShown: false,
+        }}
+      />
+      <Stack.Screen
+        name='report-bug'
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

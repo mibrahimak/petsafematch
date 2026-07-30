@@ -253,7 +253,7 @@ const Profile = () => {
             <ProfileMenuItem
               icon='help-circle-outline'
               label='Yardım & Destek'
-              onPress={() => handleComingSoon('Yardım ve destek')}
+              onPress={() => router.push('/(profile)/help-support')}
             />
             <ProfileMenuItem
               icon='information-circle-outline'

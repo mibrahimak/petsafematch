@@ -144,6 +144,14 @@ const Register = () => {
     router.push('/(auth)/login');
   }, [router]);
 
+  const handleTermsPress = useCallback(() => {
+    router.push('/(profile)/terms-of-service');
+  }, [router]);
+
+  const handlePrivacyPress = useCallback(() => {
+    router.push('/(profile)/privacy-policy');
+  }, [router]);
+
   const termsError =
     formik.touched.acceptTerms && formik.errors.acceptTerms
       ? formik.errors.acceptTerms
@@ -272,33 +280,42 @@ const Register = () => {
           </View>
         ) : null}
 
-        <Pressable style={styles.termsRow} onPress={handleToggleTerms}>
-          <View
-            style={[
-              styles.checkbox,
-              {
-                borderColor: formik.values.acceptTerms
-                  ? colors.primary
-                  : colors.borderColor,
-                backgroundColor: formik.values.acceptTerms
-                  ? colors.primary
-                  : 'transparent',
-              },
-            ]}
-          >
-            {formik.values.acceptTerms ? (
-              <Ionicons name='checkmark' size={14} color={colors.onPrimary} />
-            ) : null}
+        <View style={styles.termsRow}>
+          <Pressable onPress={handleToggleTerms} hitSlop={8}>
+            <View
+              style={[
+                styles.checkbox,
+                {
+                  borderColor: formik.values.acceptTerms
+                    ? colors.primary
+                    : colors.borderColor,
+                  backgroundColor: formik.values.acceptTerms
+                    ? colors.primary
+                    : 'transparent',
+                },
+              ]}
+            >
+              {formik.values.acceptTerms ? (
+                <Ionicons name='checkmark' size={14} color={colors.onPrimary} />
+              ) : null}
+            </View>
+          </Pressable>
+          <View style={styles.termsTextWrap}>
+            <ThemedText style={styles.termsText}>Hizmet </ThemedText>
+            <Pressable onPress={handleTermsPress} hitSlop={4}>
+              <ThemedText style={[styles.termsLink, { color: colors.link }]}>
+                Şartları
+              </ThemedText>
+            </Pressable>
+            <ThemedText style={styles.termsText}> ve </ThemedText>
+            <Pressable onPress={handlePrivacyPress} hitSlop={4}>
+              <ThemedText style={[styles.termsLink, { color: colors.link }]}>
+                Gizlilik Politikası
+              </ThemedText>
+            </Pressable>
+            <ThemedText style={styles.termsText}>'nı kabul ediyorum</ThemedText>
           </View>
-          <ThemedText style={styles.termsText}>
-            Hizmet{' '}
-            <ThemedText style={{ color: colors.link }}>Şartları</ThemedText> ve{' '}
-            <ThemedText style={{ color: colors.link }}>
-              Gizlilik Politikası
-            </ThemedText>
-            'nı kabul ediyorum
-          </ThemedText>
-        </Pressable>
+        </View>
 
         {termsError ? (
           <ThemedText style={[styles.termsError, { color: colors.errorText }]}>
@@ -385,6 +402,12 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginTop: 4,
   },
+  termsTextWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    alignItems: 'center',
+  },
   checkbox: {
     width: 20,
     height: 20,
@@ -396,9 +419,13 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   termsText: {
-    flex: 1,
     fontSize: 13,
     lineHeight: 20,
+  },
+  termsLink: {
+    fontSize: 13,
+    lineHeight: 20,
+    fontWeight: '600',
   },
   termsError: {
     fontSize: 12,

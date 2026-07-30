@@ -7,14 +7,14 @@ import {
   RefreshControl,
 } from 'react-native';
 import { useCallback, useContext, useEffect, useMemo } from 'react';
-import Constants from 'expo-constants';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useRouter } from 'expo-router';
-import { Ionicons } from '@expo/vector-icons';
+import { Ionicons, Octicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import { useRefresh } from '../../hooks/useRefresh';
 import { useProfileStats } from '../../hooks/useProfileStats';
 import { useNotificationPreferences } from '../../hooks/useNotificationPreferences';
+import { getAppVersionLabel } from '../../utils/appVersion';
 
 import ThemedView from '../../components/ThemedView';
 import ThemedText from '../../components/ThemedText';
@@ -24,8 +24,7 @@ import ProfileStatsRow from '../../components/profile/ProfileStatsRow';
 import ProfileSection from '../../components/profile/ProfileSection';
 import ProfileMenuItem from '../../components/profile/ProfileMenuItem';
 import ProfileToggleItem from '../../components/profile/ProfileToggleItem';
-
-const APP_VERSION = Constants.expoConfig?.version ?? '1.0.0';
+import AppVersionFooter from '../../components/profile/AppVersionFooter';
 
 const Profile = () => {
   const { logout, isLoggedIn, profile, user, isLoading, refreshProfile } =
@@ -254,19 +253,27 @@ const Profile = () => {
               icon='help-circle-outline'
               label='Yardım & Destek'
               onPress={() => router.push('/(profile)/help-support')}
+              isLast
+            />
+          </ProfileSection>
+
+          <ProfileSection title='Uygulama Hakkında & Yasal'>
+            <ProfileMenuItem
+              icon='pricetag-outline'
+              label='Versiyon'
+              value={getAppVersionLabel()}
+              chevron={false}
             />
             <ProfileMenuItem
-              icon='information-circle-outline'
-              label='Hakkında'
-              value={`v${APP_VERSION}`}
-              chevron={false}
+              icon='document-text-outline'
+              label='Kullanım Koşulları'
+              onPress={() => router.push('/(profile)/terms-of-service')}
+            />
+            <ProfileMenuItem
+              icon='shield-checkmark-outline'
+              label='Gizlilik Politikası'
+              onPress={() => router.push('/(profile)/privacy-policy')}
               isLast
-              onPress={() =>
-                Alert.alert(
-                  'PetSafeMatch',
-                  `Sürüm ${APP_VERSION}\nEvcil hayvan eşleştirme platformu.`
-                )
-              }
             />
           </ProfileSection>
 

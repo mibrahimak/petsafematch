@@ -28,6 +28,12 @@ export default function ProfileLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name='device-permissions'
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

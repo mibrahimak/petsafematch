@@ -75,6 +75,10 @@ const Profile = () => {
     router.push('/(profile)/privacy-settings');
   }, [router]);
 
+  const handleDevicePermissions = useCallback(() => {
+    router.push('/(profile)/device-permissions');
+  }, [router]);
+
   const handleComingSoon = useCallback((feature) => {
     Alert.alert('Yakında', `${feature} özelliği yakında eklenecek.`);
   }, []);
@@ -244,7 +248,7 @@ const Profile = () => {
             <ProfileMenuItem
               icon='phone-portrait-outline'
               label='Cihaz İzinleri'
-              onPress={() => handleComingSoon('Cihaz izinleri')}
+              onPress={handleDevicePermissions}
             />
             <ProfileMenuItem
               icon='help-circle-outline'

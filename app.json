@@ -24,7 +24,27 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-web-browser"
+      "expo-web-browser",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Yakındaki ilanları ve evcil hayvanları bulmak için konumunuza ihtiyacımız var."
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Evcil hayvan fotoğrafları yüklemek için galeri erişimine ihtiyacımız var.",
+          "cameraPermission": "Fotoğraf çekmek için kamera erişimine ihtiyacımız var."
+        }
+      ],
+      "expo-notifications",
+      [
+        "expo-av",
+        {
+          "microphonePermission": "Sesli mesaj göndermek için mikrofon izni gerekir."
+        }
+      ]
     ]
   }
 }

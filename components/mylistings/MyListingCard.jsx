@@ -17,7 +17,7 @@ import {
   LISTING_STATUS,
   STATUS_CONFIG,
 } from '../../constants/myListingsOptions';
-import { formatDaysAgo } from '../../utils/formatDaysAgo';
+import { formatLocation } from '../../utils/formatLocation';
 
 const ListingAvatar = memo(function ListingAvatar({ imageUrl, name }) {
   const color = getAvatarColor(name);
@@ -146,7 +146,7 @@ const MyListingCard = ({ listing, onDelete }) => {
             <View style={styles.locationBlock}>
               <Ionicons name='location-outline' size={11} color={colors.label} />
               <ThemedText style={[styles.locationText, { color: colors.label }]}>
-                {listing.location || 'Belirtilmemiş'}
+                {formatLocation(listing)}
               </ThemedText>
             </View>
             <View style={styles.timeBlock}>

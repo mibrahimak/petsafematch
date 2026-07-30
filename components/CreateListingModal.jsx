@@ -1,4 +1,4 @@
-import React, { useCallback, useContext } from 'react';
+import React, { useCallback, useContext, useMemo } from 'react';
 import {
   Modal,
   StyleSheet,
@@ -25,11 +25,20 @@ import * as yup from 'yup';
 import ThemedView from './ThemedView';
 import ThemedText from './ThemedText';
 import ThemedButton from './ThemedButton';
+import FormSelect from './forms/FormSelect';
 import {
   HEALTH_OPTIONS,
   LISTING_TRAITS,
   TRAIT_LABELS,
+  PET_WEIGHT_OPTIONS,
+  PET_COLOR_OPTIONS,
+  VET_VISIT_OPTIONS,
+  getBreedsForCategory,
 } from '../constants/listingOptions';
+import {
+  getCityOptions,
+  getDistrictOptions,
+} from '../constants/turkeyLocations';
 
 const CATEGORIES = ['Kedi', 'Köpek', 'Kuş', 'Diğer'];
 const GENDERS = ['Erkek', 'Dişi'];
@@ -45,18 +54,49 @@ const formSchema = yup.object({
   description: yup.string().trim().required('Lütfen bu alanı doldurun'),
   imageUri: yup.string().required('Lütfen bir fotoğraf ekleyin'),
   age: yup.string().oneOf(AGE_GROUPS).required('Lütfen yaş grubunu seçin'),
-  location: yup.string().trim().required('Lütfen bu alanı doldurun'),
+  city: yup.string().required('Lütfen şehir seçin'),
+  district: yup.string().required('Lütfen ilçe seçin'),
   gender: yup.string().oneOf(GENDERS).required('Lütfen cinsiyet seçin'),
-  species: yup.string().trim().required('Lütfen bu alanı doldurun'),
+  species: yup.string().required('Lütfen ırk seçin'),
   category: yup
     .string()
     .oneOf(CATEGORIES)
     .required('Lütfen bir kategori seçin'),
   traits: yup.array().of(yup.string().oneOf(TRAIT_LABELS)),
-  weight: yup.string().trim(),
-  color: yup.string().trim(),
-  last_vet_visit: yup.string().trim(),
-  last_vet_clinic: yup.string().trim(),
+  weight: yup.string().nullable(),
+  color: yup.string().nullable(),
+  last_vet_visit: yup.string().nullable(),
+});
+
+const ACCENT_COLOR = '#2563EB';
+
+const ChipOption = React.memo(function ChipOption({
+  label,
+  isActive,
+  onPress,
+  colors,
+  long = false,
+}) {
+  return (
+    <Pressable
+      style={[
+        long ? styles.chipLong : styles.chip,
+        { backgroundColor: colors.uiBackground },
+        isActive && { backgroundColor: ACCENT_COLOR },
+      ]}
+      onPress={onPress}
+    >
+      <Text
+        style={[
+          styles.chipText,
+          { color: colors.text },
+          isActive && { color: '#FFFFFF' },
+        ]}
+      >
+        {label}
+      </Text>
+    </Pressable>
+  );
 });
 
 export default function CreateListingModal({
@@ -68,6 +108,7 @@ export default function CreateListingModal({
   const { colors } = useTheme();
 
   const addPetToStore = usePetStore((state) => state.addPetToStore);
+  const cityOptions = useMemo(() => getCityOptions(), []);
 
   const uploadImageAsync = async ({ uri, fileName, mimeType }) => {
     try {
@@ -97,7 +138,7 @@ export default function CreateListingModal({
 
       return publicUrlData.publicUrl;
     } catch (error) {
-      console.error('Görsel yükleme hatası:', error);
+      console.error('[CreateListingModal] Görsel yükleme hatası:', error);
       throw new Error('Fotoğraf sunucuya yüklenirken bir hata oluştu.');
     }
   };
@@ -110,7 +151,8 @@ export default function CreateListingModal({
       imageFileName: '',
       imageMimeType: '',
       age: 'Yavru (0-1 Yaş)',
-      location: '',
+      city: '',
+      district: '',
       gender: 'Erkek',
       species: '',
       category: 'Kedi',
@@ -122,7 +164,6 @@ export default function CreateListingModal({
       nail_trim: false,
       microchip: false,
       last_vet_visit: '',
-      last_vet_clinic: '',
     },
     validationSchema: formSchema,
     onSubmit: async (values, { setSubmitting, resetForm }) => {
@@ -138,8 +179,7 @@ export default function CreateListingModal({
           neutered: values.neutered,
           nail_trim: values.nail_trim,
           microchip: values.microchip,
-          last_vet_visit: values.last_vet_visit.trim() || null,
-          last_vet_clinic: values.last_vet_clinic.trim() || null,
+          last_vet_visit: values.last_vet_visit || null,
         };
 
         const { data, error } = await supabase
@@ -150,7 +190,8 @@ export default function CreateListingModal({
               species: values.species,
               gender: values.gender,
               age: values.age,
-              location: values.location,
+              city: values.city,
+              district: values.district,
               category: values.category,
               description: values.description,
               image_url: publicImageUrl,
@@ -159,8 +200,8 @@ export default function CreateListingModal({
               review_status: 'pending',
               traits: values.traits,
               health_status: healthStatus,
-              weight: values.weight.trim() || null,
-              color: values.color.trim() || null,
+              weight: values.weight || null,
+              color: values.color || null,
             },
           ])
           .select();
@@ -176,12 +217,26 @@ export default function CreateListingModal({
         if (onRefreshListings) onRefreshListings();
         onClose();
       } catch (error) {
-        Alert.alert('Hata', error.message);
+        console.error('[CreateListingModal] İlan oluşturma hatası:', error);
+        Alert.alert(
+          'Hata',
+          'İlan oluşturulurken bir sorun oluştu. Lütfen tekrar deneyin.'
+        );
       } finally {
         setSubmitting(false);
       }
     },
   });
+
+  const breedOptions = useMemo(
+    () => getBreedsForCategory(formik.values.category),
+    [formik.values.category]
+  );
+
+  const districtOptions = useMemo(
+    () => getDistrictOptions(formik.values.city),
+    [formik.values.city]
+  );
 
   const handleToggleTrait = useCallback(
     (traitLabel) => {
@@ -197,6 +252,43 @@ export default function CreateListingModal({
   const handleToggleHealth = useCallback(
     (healthKey) => {
       formik.setFieldValue(healthKey, !formik.values[healthKey]);
+    },
+    [formik]
+  );
+
+  const handleCategorySelect = useCallback(
+    (category) => {
+      formik.setFieldValue('category', category);
+      formik.setFieldValue('species', '');
+    },
+    [formik]
+  );
+
+  const handleCitySelect = useCallback(
+    (city) => {
+      formik.setFieldValue('city', city);
+      formik.setFieldValue('district', '');
+    },
+    [formik]
+  );
+
+  const handleDistrictSelect = useCallback(
+    (district) => {
+      formik.setFieldValue('district', district);
+    },
+    [formik]
+  );
+
+  const handleSpeciesSelect = useCallback(
+    (species) => {
+      formik.setFieldValue('species', species);
+    },
+    [formik]
+  );
+
+  const handleOptionalChipSelect = useCallback(
+    (field, value) => {
+      formik.setFieldValue(field, formik.values[field] === value ? '' : value);
     },
     [formik]
   );
@@ -227,391 +319,329 @@ export default function CreateListingModal({
   };
 
   return (
-    <Modal visible={visible} animationType='slide' transparent={true}>
+    <Modal
+      visible={visible}
+      animationType='slide'
+      transparent
+      onRequestClose={onClose}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.flexContainer}
       >
-        <Pressable style={styles.dismissArea} onPress={onClose}>
-          <View style={styles.modalOverlay}>
-            <ThemedView style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <ThemedText style={styles.modalTitle}>
-                  Yeni İlan Oluştur
-                </ThemedText>
+        <View style={styles.modalOverlay}>
+          <Pressable style={styles.backdrop} onPress={onClose} />
 
-                <Pressable onPress={onClose}>
-                  <Ionicons name='close' size={24} color={colors.text} />
-                </Pressable>
-              </View>
+          <ThemedView style={styles.modalContent}>
+            <View style={styles.modalHeader}>
+              <ThemedText style={styles.modalTitle}>
+                Yeni İlan Oluştur
+              </ThemedText>
 
-              <ScrollView
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps='handled'
+              <Pressable onPress={onClose} hitSlop={8}>
+                <Ionicons name='close' size={24} color={colors.text} />
+              </Pressable>
+            </View>
+
+            <ScrollView
+              style={styles.scrollView}
+              contentContainerStyle={styles.scrollContent}
+              showsVerticalScrollIndicator={false}
+              keyboardShouldPersistTaps='handled'
+            >
+              <Pressable
+                style={[
+                  styles.imageSelectArea,
+                  {
+                    borderColor:
+                      formik.errors.imageUri && formik.touched.imageUri
+                        ? '#EF4444'
+                        : colors.borderColor,
+                  },
+                ]}
+                onPress={pickImage}
               >
-                <Pressable
-                  style={[
-                    styles.imageSelectArea,
-                    {
-                      borderColor:
+                {formik.values.imageUri ? (
+                  <View style={styles.imagePreviewContainer}>
+                    <Image
+                      source={{ uri: formik.values.imageUri }}
+                      style={styles.selectedImage}
+                    />
+                    <Pressable
+                      style={styles.removeImageButton}
+                      onPress={() => {
+                        formik.setFieldValue('imageUri', '');
+                        formik.setFieldValue('imageFileName', '');
+                        formik.setFieldValue('imageMimeType', '');
+                      }}
+                    >
+                      <Ionicons name='trash-outline' size={16} color='#FFF' />
+                    </Pressable>
+                  </View>
+                ) : (
+                  <View style={styles.imagePlaceholder}>
+                    <Ionicons
+                      name='camera-outline'
+                      size={36}
+                      color={
                         formik.errors.imageUri && formik.touched.imageUri
                           ? '#EF4444'
-                          : colors.borderColor,
-                    },
-                  ]}
-                  onPress={pickImage}
-                >
-                  {formik.values.imageUri ? (
-                    <View style={styles.imagePreviewContainer}>
-                      <Image
-                        source={{ uri: formik.values.imageUri }}
-                        style={styles.selectedImage}
-                      />
-                      <Pressable
-                        style={styles.removeImageButton}
-                        onPress={() => {
-                          formik.setFieldValue('imageUri', '');
-                          formik.setFieldValue('imageFileName', '');
-                          formik.setFieldValue('imageMimeType', '');
-                        }}
-                      >
-                        <Ionicons name='trash-outline' size={16} color='#FFF' />
-                      </Pressable>
-                    </View>
-                  ) : (
-                    <View style={{ alignItems: 'center' }}>
-                      <Ionicons
-                        name='camera-outline'
-                        size={36}
-                        color={
-                          formik.errors.imageUri && formik.touched.imageUri
-                            ? '#EF4444'
-                            : '#9CA3AF'
-                        }
-                      />
-                      <ThemedText
-                        style={{
-                          fontSize: 12,
+                          : '#9CA3AF'
+                      }
+                    />
+                    <ThemedText
+                      style={[
+                        styles.imagePlaceholderText,
+                        {
                           color:
                             formik.errors.imageUri && formik.touched.imageUri
                               ? '#EF4444'
                               : '#9CA3AF',
-                          marginTop: 4,
-                        }}
-                      >
-                        Fotoğraf Seç *
-                      </ThemedText>
-                    </View>
-                  )}
-                </Pressable>
-                {formik.errors.imageUri && formik.touched.imageUri && (
-                  <Text
-                    style={[
-                      styles.errorText,
-                      { textAlign: 'center', marginBottom: 10 },
-                    ]}
-                  >
-                    {formik.errors.imageUri}
-                  </Text>
-                )}
-
-                <ThemedText style={styles.label}>Evcil Hayvan Adı *</ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    { borderColor: colors.borderColor, color: colors.text },
-                  ]}
-                  value={formik.values.name}
-                  onChangeText={formik.handleChange('name')}
-                  onBlur={formik.handleBlur('name')}
-                  placeholder='Örn: Pamuk'
-                  placeholderTextColor='#9CA3AF'
-                />
-                {formik.errors.name && formik.touched.name && (
-                  <Text style={styles.errorText}>{formik.errors.name}</Text>
-                )}
-
-                <ThemedText style={styles.label}>Kategori *</ThemedText>
-                <View style={styles.chipRow}>
-                  {CATEGORIES.map((cat) => (
-                    <Pressable
-                      key={cat}
-                      style={[
-                        styles.chip,
-                        formik.values.category === cat && {
-                          backgroundColor: colors.primary,
                         },
                       ]}
-                      onPress={() => formik.setFieldValue('category', cat)}
                     >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          formik.values.category === cat && {
-                            color: colors.onPrimary,
-                          },
-                        ]}
-                      >
-                        {cat}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                {formik.errors.category && formik.touched.category && (
-                  <Text style={styles.errorText}>{formik.errors.category}</Text>
+                      Fotoğraf Seç *
+                    </ThemedText>
+                  </View>
                 )}
+              </Pressable>
+              {formik.errors.imageUri && formik.touched.imageUri && (
+                <Text style={[styles.errorText, styles.imageError]}>
+                  {formik.errors.imageUri}
+                </Text>
+              )}
 
-                <ThemedText style={styles.label}>Türü / Irkı *</ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    { borderColor: colors.borderColor, color: colors.text },
-                  ]}
-                  value={formik.values.species}
-                  onChangeText={formik.handleChange('species')}
-                  onBlur={formik.handleBlur('species')}
-                  placeholder='Örn: Tekir, Siyam, Golden'
-                  placeholderTextColor='#9CA3AF'
-                />
-                {formik.errors.species && formik.touched.species && (
-                  <Text style={styles.errorText}>{formik.errors.species}</Text>
-                )}
+              <ThemedText style={styles.label}>Evcil Hayvan Adı *</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  { borderColor: colors.borderColor, color: colors.text },
+                ]}
+                value={formik.values.name}
+                onChangeText={formik.handleChange('name')}
+                onBlur={formik.handleBlur('name')}
+                placeholder='Örn: Pamuk'
+                placeholderTextColor='#9CA3AF'
+              />
+              {formik.errors.name && formik.touched.name && (
+                <Text style={styles.errorText}>{formik.errors.name}</Text>
+              )}
 
-                <ThemedText style={styles.label}>Cinsiyet *</ThemedText>
-                <View style={styles.chipRow}>
-                  {GENDERS.map((gen) => (
-                    <Pressable
-                      key={gen}
-                      style={[
-                        styles.chip,
-                        formik.values.gender === gen && {
-                          backgroundColor: colors.primary,
-                        },
-                      ]}
-                      onPress={() => formik.setFieldValue('gender', gen)}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          formik.values.gender === gen && {
-                            color: colors.onPrimary,
-                          },
-                        ]}
-                      >
-                        {gen}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                {formik.errors.gender && formik.touched.gender && (
-                  <Text style={styles.errorText}>{formik.errors.gender}</Text>
-                )}
+              <ThemedText style={styles.label}>Kategori *</ThemedText>
+              <View style={styles.chipRow}>
+                {CATEGORIES.map((cat) => (
+                  <ChipOption
+                    key={cat}
+                    label={cat}
+                    isActive={formik.values.category === cat}
+                    onPress={() => handleCategorySelect(cat)}
+                    colors={colors}
+                  />
+                ))}
+              </View>
+              {formik.errors.category && formik.touched.category && (
+                <Text style={styles.errorText}>{formik.errors.category}</Text>
+              )}
 
-                <ThemedText style={styles.label}>Yaşı *</ThemedText>
-                <View style={styles.chipRowVertical}>
-                  {AGE_GROUPS.map((ageGroup) => (
-                    <Pressable
-                      key={ageGroup}
-                      style={[
-                        styles.chipLong,
-                        formik.values.age === ageGroup && {
-                          backgroundColor: colors.primary,
-                        },
-                      ]}
-                      onPress={() => formik.setFieldValue('age', ageGroup)}
-                    >
-                      <Text
-                        style={[
-                          styles.chipText,
-                          formik.values.age === ageGroup && {
-                            color: colors.onPrimary,
-                          },
-                        ]}
-                      >
-                        {ageGroup}
-                      </Text>
-                    </Pressable>
-                  ))}
-                </View>
-                {formik.errors.age && formik.touched.age && (
-                  <Text style={styles.errorText}>{formik.errors.age}</Text>
-                )}
+              <FormSelect
+                label='Türü / Irkı *'
+                value={formik.values.species}
+                options={breedOptions}
+                onSelect={handleSpeciesSelect}
+                onBlur={() => formik.setFieldTouched('species', true)}
+                placeholder='Irk seçin'
+                error={
+                  formik.errors.species && formik.touched.species
+                    ? formik.errors.species
+                    : undefined
+                }
+              />
 
-                <ThemedText style={styles.label}>Konum *</ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    { borderColor: colors.borderColor, color: colors.text },
-                  ]}
-                  value={formik.values.location}
-                  onChangeText={formik.handleChange('location')}
-                  onBlur={formik.handleBlur('location')}
-                  placeholder='Örn: Samsun, Atakum'
-                  placeholderTextColor='#9CA3AF'
-                />
-                {formik.errors.location && formik.touched.location && (
-                  <Text style={styles.errorText}>{formik.errors.location}</Text>
-                )}
+              <ThemedText style={styles.label}>Cinsiyet *</ThemedText>
+              <View style={styles.chipRow}>
+                {GENDERS.map((gen) => (
+                  <ChipOption
+                    key={gen}
+                    label={gen}
+                    isActive={formik.values.gender === gen}
+                    onPress={() => formik.setFieldValue('gender', gen)}
+                    colors={colors}
+                  />
+                ))}
+              </View>
+              {formik.errors.gender && formik.touched.gender && (
+                <Text style={styles.errorText}>{formik.errors.gender}</Text>
+              )}
 
-                <ThemedText style={styles.label}>Açıklama *</ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    styles.textArea,
-                    { borderColor: colors.borderColor, color: colors.text },
-                  ]}
-                  value={formik.values.description}
-                  onChangeText={formik.handleChange('description')}
-                  onBlur={formik.handleBlur('description')}
-                  placeholder='İlan detayları...'
-                  placeholderTextColor='#9CA3AF'
-                  multiline
-                  numberOfLines={4}
-                />
-                {formik.errors.description && formik.touched.description && (
-                  <Text style={styles.errorText}>
-                    {formik.errors.description}
-                  </Text>
-                )}
+              <ThemedText style={styles.label}>Yaşı *</ThemedText>
+              <View style={styles.chipRowVertical}>
+                {AGE_GROUPS.map((ageGroup) => (
+                  <ChipOption
+                    key={ageGroup}
+                    label={ageGroup}
+                    isActive={formik.values.age === ageGroup}
+                    onPress={() => formik.setFieldValue('age', ageGroup)}
+                    colors={colors}
+                    long
+                  />
+                ))}
+              </View>
+              {formik.errors.age && formik.touched.age && (
+                <Text style={styles.errorText}>{formik.errors.age}</Text>
+              )}
 
-                <ThemedText style={styles.label}>Karakter Özellikleri</ThemedText>
-                <View style={styles.chipRow}>
-                  {LISTING_TRAITS.map((trait) => {
-                    const isActive = formik.values.traits.includes(trait.label);
+              <FormSelect
+                label='Şehir *'
+                value={formik.values.city}
+                options={cityOptions}
+                onSelect={handleCitySelect}
+                onBlur={() => formik.setFieldTouched('city', true)}
+                placeholder='Şehir seçin'
+                searchable
+                error={
+                  formik.errors.city && formik.touched.city
+                    ? formik.errors.city
+                    : undefined
+                }
+              />
 
-                    return (
-                      <Pressable
-                        key={trait.id}
-                        style={[
-                          styles.chip,
-                          { backgroundColor: colors.uiBackground },
-                          isActive && {
-                            backgroundColor: colors.primary,
-                          },
-                        ]}
-                        onPress={() => handleToggleTrait(trait.label)}
-                      >
-                        <Text
-                          style={[
-                            styles.chipText,
-                            { color: colors.text },
-                            isActive && { color: colors.onPrimary },
-                          ]}
-                        >
-                          {trait.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+              <FormSelect
+                label='İlçe *'
+                value={formik.values.district}
+                options={districtOptions}
+                onSelect={handleDistrictSelect}
+                onBlur={() => formik.setFieldTouched('district', true)}
+                placeholder={
+                  formik.values.city ? 'İlçe seçin' : 'Önce şehir seçin'
+                }
+                disabled={!formik.values.city}
+                searchable
+                error={
+                  formik.errors.district && formik.touched.district
+                    ? formik.errors.district
+                    : undefined
+                }
+              />
 
-                <ThemedText style={styles.label}>Ağırlık</ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    { borderColor: colors.borderColor, color: colors.text },
-                  ]}
-                  value={formik.values.weight}
-                  onChangeText={formik.handleChange('weight')}
-                  onBlur={formik.handleBlur('weight')}
-                  placeholder='Örn: 3.2 kg'
-                  placeholderTextColor={colors.label}
-                />
+              <ThemedText style={styles.label}>Açıklama *</ThemedText>
+              <TextInput
+                style={[
+                  styles.input,
+                  styles.textArea,
+                  { borderColor: colors.borderColor, color: colors.text },
+                ]}
+                value={formik.values.description}
+                onChangeText={formik.handleChange('description')}
+                onBlur={formik.handleBlur('description')}
+                placeholder='İlan detayları...'
+                placeholderTextColor='#9CA3AF'
+                multiline
+                numberOfLines={4}
+              />
+              {formik.errors.description && formik.touched.description && (
+                <Text style={styles.errorText}>
+                  {formik.errors.description}
+                </Text>
+              )}
 
-                <ThemedText style={styles.label}>Renk</ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    { borderColor: colors.borderColor, color: colors.text },
-                  ]}
-                  value={formik.values.color}
-                  onChangeText={formik.handleChange('color')}
-                  onBlur={formik.handleBlur('color')}
-                  placeholder='Örn: Gri-Beyaz'
-                  placeholderTextColor={colors.label}
-                />
+              <ThemedText style={styles.label}>Karakter Özellikleri</ThemedText>
+              <View style={styles.chipRow}>
+                {LISTING_TRAITS.map((trait) => {
+                  const isActive = formik.values.traits.includes(trait.label);
 
-                <ThemedText style={styles.label}>Sağlık Durumu</ThemedText>
-                <View style={styles.chipRow}>
-                  {HEALTH_OPTIONS.map((option) => {
-                    const isActive = formik.values[option.key];
+                  return (
+                    <ChipOption
+                      key={trait.id}
+                      label={trait.label}
+                      isActive={isActive}
+                      onPress={() => handleToggleTrait(trait.label)}
+                      colors={colors}
+                    />
+                  );
+                })}
+              </View>
 
-                    return (
-                      <Pressable
-                        key={option.key}
-                        style={[
-                          styles.chip,
-                          { backgroundColor: colors.uiBackground },
-                          isActive && {
-                            backgroundColor: colors.primary,
-                          },
-                        ]}
-                        onPress={() => handleToggleHealth(option.key)}
-                      >
-                        <Text
-                          style={[
-                            styles.chipText,
-                            { color: colors.text },
-                            isActive && { color: colors.onPrimary },
-                          ]}
-                        >
-                          {option.label}
-                        </Text>
-                      </Pressable>
-                    );
-                  })}
-                </View>
+              <ThemedText style={styles.label}>Ağırlık</ThemedText>
+              <View style={styles.chipRow}>
+                {PET_WEIGHT_OPTIONS.map((option) => (
+                  <ChipOption
+                    key={option}
+                    label={option}
+                    isActive={formik.values.weight === option}
+                    onPress={() => handleOptionalChipSelect('weight', option)}
+                    colors={colors}
+                  />
+                ))}
+              </View>
 
-                <ThemedText style={styles.label}>
-                  Son Veteriner Ziyareti
-                </ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    { borderColor: colors.borderColor, color: colors.text },
-                  ]}
-                  value={formik.values.last_vet_visit}
-                  onChangeText={formik.handleChange('last_vet_visit')}
-                  onBlur={formik.handleBlur('last_vet_visit')}
-                  placeholder='Örn: Haz 2025'
-                  placeholderTextColor={colors.label}
-                />
+              <ThemedText style={styles.label}>Renk</ThemedText>
+              <View style={styles.chipRow}>
+                {PET_COLOR_OPTIONS.map((option) => (
+                  <ChipOption
+                    key={option}
+                    label={option}
+                    isActive={formik.values.color === option}
+                    onPress={() => handleOptionalChipSelect('color', option)}
+                    colors={colors}
+                  />
+                ))}
+              </View>
 
-                <ThemedText style={styles.label}>Veteriner Kliniği</ThemedText>
-                <TextInput
-                  style={[
-                    styles.input,
-                    { borderColor: colors.borderColor, color: colors.text },
-                  ]}
-                  value={formik.values.last_vet_clinic}
-                  onChangeText={formik.handleChange('last_vet_clinic')}
-                  onBlur={formik.handleBlur('last_vet_clinic')}
-                  placeholder='Örn: Özel Klinik, İstanbul'
-                  placeholderTextColor={colors.label}
-                />
+              <ThemedText style={styles.label}>Sağlık Durumu</ThemedText>
+              <View style={styles.chipRow}>
+                {HEALTH_OPTIONS.map((option) => {
+                  const isActive = formik.values[option.key];
 
-                <View style={styles.submitButtonWrapper}>
-                  <ThemedButton
+                  return (
+                    <ChipOption
+                      key={option.key}
+                      label={option.label}
+                      isActive={isActive}
+                      onPress={() => handleToggleHealth(option.key)}
+                      colors={colors}
+                    />
+                  );
+                })}
+              </View>
+
+              <ThemedText style={styles.label}>
+                Son Veteriner Ziyareti
+              </ThemedText>
+              <View style={styles.chipRowVertical}>
+                {VET_VISIT_OPTIONS.map((option) => (
+                  <ChipOption
+                    key={option}
+                    label={option}
+                    isActive={formik.values.last_vet_visit === option}
+                    onPress={() =>
+                      handleOptionalChipSelect('last_vet_visit', option)
+                    }
+                    colors={colors}
+                    long
+                  />
+                ))}
+              </View>
+
+              <View style={styles.submitButtonWrapper}>
+                <ThemedButton
                     style={[
                       styles.submitButton,
                       {
-                        backgroundColor: colors.primary,
+                        backgroundColor: ACCENT_COLOR,
                         opacity: formik.isSubmitting ? 0.6 : 1,
                       },
                     ]}
-                    onPress={formik.handleSubmit}
-                    disabled={formik.isSubmitting}
-                  >
-                    <ThemedText style={styles.buttonText}>
-                      {formik.isSubmitting ? 'Yayınlanıyor...' : 'Yayınla'}
-                    </ThemedText>
-                  </ThemedButton>
-                </View>
-              </ScrollView>
-            </ThemedView>
-          </View>
-        </Pressable>
+                  onPress={formik.handleSubmit}
+                  disabled={formik.isSubmitting}
+                >
+                  <ThemedText style={styles.buttonText}>
+                    {formik.isSubmitting ? 'Yayınlanıyor...' : 'Yayınla'}
+                  </ThemedText>
+                </ThemedButton>
+              </View>
+            </ScrollView>
+          </ThemedView>
+        </View>
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -621,21 +651,19 @@ const styles = StyleSheet.create({
   flexContainer: {
     flex: 1,
   },
-  dismissArea: {
-    flex: 1,
-  },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'flex-end',
   },
+  backdrop: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+  },
   modalContent: {
-    flex: 1,
+    height: '90%',
     paddingTop: 20,
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingTop: 20,
-    maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
@@ -647,6 +675,9 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 20,
     fontWeight: '700',
+  },
+  scrollView: {
+    flex: 1,
   },
   scrollContent: {
     paddingHorizontal: 20,
@@ -682,6 +713,17 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 10,
   },
+  imagePlaceholder: {
+    alignItems: 'center',
+  },
+  imagePlaceholderText: {
+    fontSize: 12,
+    marginTop: 4,
+  },
+  imageError: {
+    textAlign: 'center',
+    marginBottom: 10,
+  },
   selectedImage: {
     width: '100%',
     height: '100%',
@@ -711,13 +753,11 @@ const styles = StyleSheet.create({
     marginBottom: 5,
   },
   chip: {
-    backgroundColor: '#F3F4F6',
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
   },
   chipLong: {
-    backgroundColor: '#F3F4F6',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderRadius: 12,
@@ -726,7 +766,6 @@ const styles = StyleSheet.create({
   chipText: {
     fontSize: 14,
     fontWeight: '500',
-    color: '#4B5563',
   },
   submitButtonWrapper: {
     alignItems: 'center',

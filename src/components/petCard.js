@@ -8,6 +8,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import { FontAwesome } from '@expo/vector-icons';
+import { formatLocation } from '../../utils/formatLocation';
 import ThemedText from '../../components/ThemedText';
 
 const FavoriteButton = memo(function FavoriteButton({ isFavorite, onPress }) {
@@ -69,7 +70,7 @@ const PetCard = ({ pet, onPress, isFavorite, onFavoritePress }) => {
         </View>
 
         <ThemedText style={styles.petMeta}>
-          {pet.category} • {pet.age} • {pet.location}
+          {pet.category} • {pet.age} • {formatLocation(pet)}
         </ThemedText>
 
         <ThemedText style={styles.description} numberOfLines={2}>

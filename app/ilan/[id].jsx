@@ -19,6 +19,7 @@ import ListingAboutTab from '../../components/listing/ListingAboutTab';
 import ListingHealthTab from '../../components/listing/ListingHealthTab';
 import ListingOwnerTab from '../../components/listing/ListingOwnerTab';
 import ListingStickyCTA from '../../components/listing/ListingStickyCTA';
+import { formatLocation } from '../../utils/formatLocation';
 
 export default function ListingDetailScreen() {
   const { id } = useLocalSearchParams();
@@ -189,7 +190,9 @@ export default function ListingDetailScreen() {
 
           <View style={styles.locationRow}>
             <Ionicons name='location-outline' size={14} color={colors.link} />
-            <ThemedText style={styles.locationText}>{pet.location}</ThemedText>
+            <ThemedText style={styles.locationText}>
+              {formatLocation(pet)}
+            </ThemedText>
           </View>
 
           <ListingStatsRow

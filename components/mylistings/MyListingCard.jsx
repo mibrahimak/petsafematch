@@ -1,16 +1,8 @@
 import React, { memo, useCallback, useState } from 'react';
-import {
-  Alert,
-  Image,
-  Modal,
-  Pressable,
-  StyleSheet,
-  View,
-} from 'react-native';
+import { Alert, Image, Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../hooks/useTheme';
-import ThemedText from '../ThemedText';
 import {
   getAvatarColor,
   getInitials,
@@ -18,15 +10,15 @@ import {
   STATUS_CONFIG,
 } from '../../constants/myListingsOptions';
 import { formatLocation } from '../../utils/formatLocation';
+import { formatDaysAgo } from '../../utils/formatDaysAgo';
+import ThemedText from '../ThemedText';
 
 const ListingAvatar = memo(function ListingAvatar({ imageUrl, name }) {
   const color = getAvatarColor(name);
   const initials = getInitials(name);
 
   if (imageUrl) {
-    return (
-      <Image source={{ uri: imageUrl }} style={styles.avatarImage} />
-    );
+    return <Image source={{ uri: imageUrl }} style={styles.avatarImage} />;
   }
 
   return (
@@ -39,7 +31,9 @@ const ListingAvatar = memo(function ListingAvatar({ imageUrl, name }) {
         },
       ]}
     >
-      <ThemedText style={[styles.avatarInitials, { color }]}>{initials}</ThemedText>
+      <ThemedText style={[styles.avatarInitials, { color }]}>
+        {initials}
+      </ThemedText>
     </View>
   );
 });
@@ -139,13 +133,20 @@ const MyListingCard = ({ listing, onDelete }) => {
           </View>
 
           <ThemedText style={[styles.meta, { color: colors.text }]}>
-            {listing.species || 'Belirtilmemiş'} · {listing.age || 'Belirtilmemiş'}
+            {listing.species || 'Belirtilmemiş'} ·{' '}
+            {listing.age || 'Belirtilmemiş'}
           </ThemedText>
 
           <View style={styles.locationRow}>
             <View style={styles.locationBlock}>
-              <Ionicons name='location-outline' size={11} color={colors.label} />
-              <ThemedText style={[styles.locationText, { color: colors.label }]}>
+              <Ionicons
+                name='location-outline'
+                size={11}
+                color={colors.label}
+              />
+              <ThemedText
+                style={[styles.locationText, { color: colors.label }]}
+              >
                 {formatLocation(listing)}
               </ThemedText>
             </View>
@@ -175,10 +176,16 @@ const MyListingCard = ({ listing, onDelete }) => {
               style={styles.detailButton}
               hitSlop={8}
             >
-              <ThemedText style={[styles.detailText, { color: colors.primary }]}>
+              <ThemedText
+                style={[styles.detailText, { color: colors.primary }]}
+              >
                 Detay
               </ThemedText>
-              <Ionicons name='chevron-forward' size={12} color={colors.primary} />
+              <Ionicons
+                name='chevron-forward'
+                size={12}
+                color={colors.primary}
+              />
             </Pressable>
           </View>
         </View>
@@ -190,7 +197,10 @@ const MyListingCard = ({ listing, onDelete }) => {
         animationType='fade'
         onRequestClose={() => setMenuOpen(false)}
       >
-        <Pressable style={styles.modalOverlay} onPress={() => setMenuOpen(false)}>
+        <Pressable
+          style={styles.modalOverlay}
+          onPress={() => setMenuOpen(false)}
+        >
           <View
             style={[
               styles.menu,
@@ -207,12 +217,20 @@ const MyListingCard = ({ listing, onDelete }) => {
                 { borderBottomColor: colors.borderColor },
               ]}
             >
-              <Ionicons name='create-outline' size={14} color={colors.primary} />
-              <ThemedText style={styles.menuItemText} title>Düzenle</ThemedText>
+              <Ionicons
+                name='create-outline'
+                size={14}
+                color={colors.primary}
+              />
+              <ThemedText style={styles.menuItemText} title>
+                Düzenle
+              </ThemedText>
             </Pressable>
             <Pressable onPress={handleDelete} style={styles.menuItem}>
               <Ionicons name='trash-outline' size={14} color={colors.warning} />
-              <ThemedText style={[styles.menuItemText, { color: colors.warning }]}>
+              <ThemedText
+                style={[styles.menuItemText, { color: colors.warning }]}
+              >
                 Sil
               </ThemedText>
             </Pressable>

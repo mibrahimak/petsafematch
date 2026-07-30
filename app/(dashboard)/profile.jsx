@@ -64,8 +64,8 @@ const Profile = () => {
   }, [stats]);
 
   const handleEditProfile = useCallback(() => {
-    Alert.alert('Bilgi', 'Profil düzenleme özelliği yakında eklenecek.');
-  }, []);
+    router.push('/(profile)/edit-profile');
+  }, [router]);
 
   const handleComingSoon = useCallback((feature) => {
     Alert.alert('Yakında', `${feature} özelliği yakında eklenecek.`);

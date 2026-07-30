@@ -148,6 +148,58 @@ export const AuthProvider = ({ children }) => {
     return data;
   }, []);
 
+  const updateUserProfile = useCallback(
+    async ({ fullName, avatarUrl, city }) => {
+      if (!user?.id) {
+        throw new Error('Oturum bulunamadı.');
+      }
+
+      const updates = {
+        full_name: fullName.trim(),
+        updated_at: new Date().toISOString(),
+      };
+
+      if (avatarUrl !== undefined) {
+        updates.avatar_url = avatarUrl;
+      }
+
+      if (city !== undefined) {
+        updates.city = city || null;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[updateUserProfile] Profil güncellenemedi:', error);
+        throw error;
+      }
+
+      const { data: authData, error: authError } =
+        await supabase.auth.updateUser({
+          data: { full_name: fullName.trim() },
+        });
+
+      if (authError) {
+        console.error(
+          '[updateUserProfile] Auth metadata güncellenemedi:',
+          authError
+        );
+        throw authError;
+      }
+
+      setProfile(data);
+      setUser(authData.user);
+
+      return data;
+    },
+    [user?.id]
+  );
+
   const value = useMemo(() => {
     return {
       isLoggedIn,
@@ -162,6 +214,7 @@ export const AuthProvider = ({ children }) => {
       signInWithProvider,
       resetPassword,
       updateProfile,
+      updateUserProfile,
     };
   }, [
     isLoggedIn,
@@ -175,6 +228,7 @@ export const AuthProvider = ({ children }) => {
     signInWithProvider,
     resetPassword,
     updateProfile,
+    updateUserProfile,
   ]);
 
   return (

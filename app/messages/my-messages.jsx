@@ -77,7 +77,7 @@ const MessagesList = () => {
 
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
-        .select('id, full_name, avatar_url, last_seen_at')
+        .select('id, full_name, avatar_url, last_seen_at, show_online_status')
         .in('id', otherIds);
 
       if (profilesError) throw profilesError;

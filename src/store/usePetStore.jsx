@@ -10,7 +10,7 @@ export const usePetStore = create((set) => ({
     try {
       const { data, error } = await supabase
         .from('listings')
-        .select('*')
+        .select('*, profiles!userId(hide_exact_location)')
         .eq('is_active', true)
         .eq('review_status', 'approved');
       if (error) throw error;

@@ -71,6 +71,10 @@ const Profile = () => {
     router.push('/(profile)/email-password');
   }, [router]);
 
+  const handlePrivacySettings = useCallback(() => {
+    router.push('/(profile)/privacy-settings');
+  }, [router]);
+
   const handleComingSoon = useCallback((feature) => {
     Alert.alert('Yakında', `${feature} özelliği yakında eklenecek.`);
   }, []);
@@ -229,19 +233,13 @@ const Profile = () => {
               label='Patili Dostlarım'
               onPress={() => router.push('/(profile)/my-pets')}
             />
-            <ProfileMenuItem
-              icon='settings-outline'
-              label='Uygulama Ayarları'
-              isLast
-              onPress={() => handleComingSoon('Uygulama ayarları')}
-            />
           </ProfileSection>
 
           <ProfileSection title='Gizlilik & Destek'>
             <ProfileMenuItem
               icon='shield-outline'
               label='Gizlilik Ayarları'
-              onPress={() => handleComingSoon('Gizlilik ayarları')}
+              onPress={handlePrivacySettings}
             />
             <ProfileMenuItem
               icon='phone-portrait-outline'

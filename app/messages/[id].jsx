@@ -33,6 +33,7 @@ import ChatHeader from '../../components/messages/ChatHeader';
 import ChatPetContextBanner from '../../components/messages/ChatPetContextBanner';
 import ChatInputBar from '../../components/messages/ChatInputBar';
 import MessageDateSeparator from '../../components/messages/MessageDateSeparator';
+import { getVisibleLastSeen } from '../../utils/privacyUtils';
 
 const formatMessageTime = (dateString) => {
   const date = new Date(dateString);
@@ -94,7 +95,7 @@ const ChatScreen = () => {
   const fetchOtherProfile = useCallback(async () => {
     const { data, error } = await supabase
       .from('profiles')
-      .select('id, full_name, avatar_url, last_seen_at')
+      .select('id, full_name, avatar_url, last_seen_at, show_online_status')
       .eq('id', otherUserId)
       .single();
 
@@ -471,7 +472,7 @@ const ChatScreen = () => {
       <ChatHeader
         fullName={fullName}
         avatarUrl={avatarUrl}
-        lastSeenAt={otherProfile?.last_seen_at}
+        lastSeenAt={getVisibleLastSeen(otherProfile)}
         onBack={() => router.back()}
       />
 

@@ -70,7 +70,12 @@ const PetCard = ({ pet, onPress, isFavorite, onFavoritePress }) => {
         </View>
 
         <ThemedText style={styles.petMeta}>
-          {pet.category} • {pet.age} • {formatLocation(pet)}
+          {pet.category} • {pet.age} •{' '}
+          {formatLocation({
+            city: pet.city,
+            district: pet.district,
+            hideExactLocation: pet.profiles?.hide_exact_location === true,
+          })}
         </ThemedText>
 
         <ThemedText style={styles.description} numberOfLines={2}>

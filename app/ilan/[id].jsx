@@ -191,7 +191,11 @@ export default function ListingDetailScreen() {
           <View style={styles.locationRow}>
             <Ionicons name='location-outline' size={14} color={colors.link} />
             <ThemedText style={styles.locationText}>
-              {formatLocation(pet)}
+              {formatLocation({
+                city: pet.city,
+                district: pet.district,
+                hideExactLocation: owner?.hide_exact_location === true,
+              })}
             </ThemedText>
           </View>
 

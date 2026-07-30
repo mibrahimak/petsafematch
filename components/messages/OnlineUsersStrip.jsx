@@ -3,12 +3,13 @@ import { Image, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import ThemedText from '../ThemedText';
 import { isUserOnline } from '../../utils/presenceUtils';
+import { getVisibleLastSeen } from '../../utils/privacyUtils';
 
 const OnlineUsersStrip = ({ conversations, onPressConversation }) => {
   const { colors } = useTheme();
 
   const onlineConversations = conversations.filter((item) =>
-    isUserOnline(item.profile?.last_seen_at)
+    isUserOnline(getVisibleLastSeen(item.profile))
   );
 
   if (onlineConversations.length === 0) return null;

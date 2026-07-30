@@ -6,6 +6,7 @@ export const isUserOnline = (lastSeenAt) => {
 };
 
 export const formatLastSeen = (lastSeenAt) => {
+  if (lastSeenAt === null) return 'Son görülme: gizli';
   if (!lastSeenAt) return 'Son görülme: bilinmiyor';
   if (isUserOnline(lastSeenAt)) return 'Çevrimiçi';
 

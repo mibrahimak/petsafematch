@@ -247,6 +247,46 @@ export const AuthProvider = ({ children }) => {
     return data;
   }, []);
 
+  const updatePrivacySettings = useCallback(
+    async ({ shareDistance, hideExactLocation, showOnlineStatus }) => {
+      if (!user?.id) {
+        throw new Error('Oturum bulunamadı.');
+      }
+
+      const updates = {
+        updated_at: new Date().toISOString(),
+      };
+
+      if (shareDistance !== undefined) {
+        updates.share_distance = shareDistance;
+      }
+
+      if (hideExactLocation !== undefined) {
+        updates.hide_exact_location = hideExactLocation;
+      }
+
+      if (showOnlineStatus !== undefined) {
+        updates.show_online_status = showOnlineStatus;
+      }
+
+      const { data, error } = await supabase
+        .from('profiles')
+        .update(updates)
+        .eq('id', user.id)
+        .select()
+        .single();
+
+      if (error) {
+        console.error('[updatePrivacySettings] Gizlilik ayarları güncellenemedi:', error);
+        throw error;
+      }
+
+      setProfile(data);
+      return data;
+    },
+    [user?.id]
+  );
+
   const value = useMemo(() => {
     return {
       isLoggedIn,
@@ -264,6 +304,7 @@ export const AuthProvider = ({ children }) => {
       updateUserProfile,
       changePassword,
       changeEmail,
+      updatePrivacySettings,
     };
   }, [
     isLoggedIn,
@@ -280,11 +321,17 @@ export const AuthProvider = ({ children }) => {
     updateUserProfile,
     changePassword,
     changeEmail,
+    updatePrivacySettings,
   ]);
 
   return (
     <AuthContext.Provider value={value}>
-      {isLoggedIn && user?.id ? <PresenceTracker userId={user.id} /> : null}
+      {isLoggedIn && user?.id ? (
+        <PresenceTracker
+          userId={user.id}
+          showOnlineStatus={profile?.show_online_status !== false}
+        />
+      ) : null}
       {children}
     </AuthContext.Provider>
   );

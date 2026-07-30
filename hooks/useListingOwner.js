@@ -16,7 +16,7 @@ export const useListingOwner = (ownerId) => {
       const [profileResult, listingsResult] = await Promise.all([
         supabase
           .from('profiles')
-          .select('id, full_name, avatar_url, phone, city, updated_at')
+          .select('id, full_name, avatar_url, phone, city, updated_at, hide_exact_location')
           .eq('id', ownerId)
           .single(),
         supabase

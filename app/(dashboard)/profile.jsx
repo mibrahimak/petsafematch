@@ -67,6 +67,10 @@ const Profile = () => {
     router.push('/(profile)/edit-profile');
   }, [router]);
 
+  const handleEmailPassword = useCallback(() => {
+    router.push('/(profile)/email-password');
+  }, [router]);
+
   const handleComingSoon = useCallback((feature) => {
     Alert.alert('Yakında', `${feature} özelliği yakında eklenecek.`);
   }, []);
@@ -154,7 +158,7 @@ const Profile = () => {
             <ProfileMenuItem
               icon='mail-outline'
               label='E-posta & Şifre'
-              onPress={() => handleComingSoon('E-posta ve şifre yönetimi')}
+              onPress={handleEmailPassword}
             />
             <ProfileMenuItem
               icon='star-outline'

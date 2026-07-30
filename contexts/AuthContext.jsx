@@ -200,6 +200,53 @@ export const AuthProvider = ({ children }) => {
     [user?.id]
   );
 
+  const changePassword = useCallback(
+    async ({ currentPassword, newPassword }) => {
+      if (!user?.email) {
+        throw new Error('Oturum bulunamadı.');
+      }
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      });
+
+      if (signInError) {
+        console.error('[changePassword] Mevcut şifre doğrulanamadı:', signInError);
+        const invalidCredentialsError = new Error('Mevcut şifre hatalı.');
+        invalidCredentialsError.code = 'invalid_current_password';
+        throw invalidCredentialsError;
+      }
+
+      const { data, error } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (error) {
+        console.error('[changePassword] Şifre güncellenemedi:', error);
+        throw error;
+      }
+
+      setUser(data.user);
+      return data;
+    },
+    [user?.email]
+  );
+
+  const changeEmail = useCallback(async ({ newEmail }) => {
+    const { data, error } = await supabase.auth.updateUser({
+      email: newEmail.trim(),
+    });
+
+    if (error) {
+      console.error('[changeEmail] E-posta güncellenemedi:', error);
+      throw error;
+    }
+
+    setUser(data.user);
+    return data;
+  }, []);
+
   const value = useMemo(() => {
     return {
       isLoggedIn,
@@ -215,6 +262,8 @@ export const AuthProvider = ({ children }) => {
       resetPassword,
       updateProfile,
       updateUserProfile,
+      changePassword,
+      changeEmail,
     };
   }, [
     isLoggedIn,
@@ -229,6 +278,8 @@ export const AuthProvider = ({ children }) => {
     resetPassword,
     updateProfile,
     updateUserProfile,
+    changePassword,
+    changeEmail,
   ]);
 
   return (

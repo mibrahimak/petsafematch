@@ -16,6 +16,12 @@ export default function ProfileLayout() {
           headerShown: false,
         }}
       />
+      <Stack.Screen
+        name='email-password'
+        options={{
+          headerShown: false,
+        }}
+      />
     </Stack>
   );
 }

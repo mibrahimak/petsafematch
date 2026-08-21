@@ -3,7 +3,6 @@ import React, {
   useMemo,
   useCallback,
   useEffect,
-  useRef,
   useContext,
 } from 'react';
 import {
@@ -14,11 +13,11 @@ import {
   ScrollView,
   RefreshControl,
   Alert,
+  View,
 } from 'react-native';
 import { useFavoriteStore } from '../../src/store/useFavoriteStore';
 import { usePetStore } from '../../src/store/usePetStore';
 import { useRouter } from 'expo-router';
-import { useTheme } from '../../hooks/useTheme';
 import { Ionicons } from '@expo/vector-icons';
 import { useRefresh } from '../../hooks/useRefresh';
 import { AuthContext } from '../../contexts/AuthContext';
@@ -27,6 +26,7 @@ import { FlashList } from '@shopify/flash-list';
 import CreateListingModal from '../../components/CreateListingModal';
 import ThemedView from '../../components/ThemedView';
 import PetCard from '../../src/components/petCard';
+import { useTheme } from '../../hooks/useTheme';
 
 const CATEGORIES = ['Hepsi', 'Kedi', 'Köpek', 'Kuş', 'Diğer'];
 
@@ -61,9 +61,9 @@ const HomeScreen = () => {
   const [activeCategory, setActiveCategory] = useState('Hepsi');
   const [searchQuery, setSearchQuery] = useState();
   const [modalVisible, setModalVisible] = useState(false);
+  const [viewMode, setViewMode] = useState('large');
 
   const { user } = useContext(AuthContext);
-  const { colors } = useTheme();
   const { refreshing, onRefresh } = useRefresh();
 
   const favorites = useFavoriteStore((state) => state.favorites);
@@ -72,6 +72,8 @@ const HomeScreen = () => {
   const fetchPets = usePetStore((state) => state.fetchPets);
 
   const router = useRouter();
+
+  const isCompactView = viewMode === 'compact';
 
   useEffect(() => {
     fetchPets();
@@ -121,6 +123,39 @@ const HomeScreen = () => {
     [user?.id, toggleFavorite, router]
   );
 
+  const handleViewModeToggle = useCallback(() => {
+    setViewMode((current) => (current === 'large' ? 'compact' : 'large'));
+  }, []);
+
+  const handlePetPress = useCallback(
+    (petId) => {
+      router.push({ pathname: '/ilan/[id]', params: { id: petId } });
+    },
+    [router]
+  );
+
+  const renderItem = useCallback(
+    ({ item }) => {
+      const isCardFavorite = favorites.includes(item.id);
+      const card = (
+        <PetCard
+          pet={item}
+          variant={viewMode}
+          isFavorite={isCardFavorite}
+          onFavoritePress={() => handleFavoritePress(item.id)}
+          onPress={() => handlePetPress(item.id)}
+        />
+      );
+
+      if (isCompactView) {
+        return <View style={styles.compactCardWrapper}>{card}</View>;
+      }
+
+      return card;
+    },
+    [favorites, viewMode, isCompactView, handleFavoritePress, handlePetPress]
+  );
+
   return (
     <ThemedView style={styles.container}>
       <ScrollView
@@ -128,7 +163,7 @@ const HomeScreen = () => {
         contentContainerStyle={styles.categoryContent}
         showsHorizontalScrollIndicator={false}
         alwaysBounceHorizontal={false}
-        style={{ flexGrow: 0, maxHeight: 65 }}
+        style={styles.categoryScroll}
       >
         {CATEGORIES.map((category) => (
           <CategoryChip
@@ -140,30 +175,35 @@ const HomeScreen = () => {
         ))}
       </ScrollView>
 
-      <TextInput
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        placeholder='Irk, isim veya açıklama ara...'
-        placeholderTextColor='#9CA3AF'
-        style={styles.searchInput}
-      />
+      <View style={styles.searchRow}>
+        <TextInput
+          value={searchQuery}
+          onChangeText={setSearchQuery}
+          placeholder='Irk, isim veya açıklama ara...'
+          placeholderTextColor='#9CA3AF'
+          style={styles.searchInput}
+        />
+        <Pressable
+          style={styles.viewToggleButton}
+          onPress={handleViewModeToggle}
+          accessibilityLabel={
+            isCompactView ? 'Büyük görünüm' : 'Kompakt görünüm'
+          }
+        >
+          <Ionicons
+            name={isCompactView ? 'list-outline' : 'grid-outline'}
+            size={22}
+            color='#374151'
+          />
+        </Pressable>
+      </View>
 
       <FlashList
+        key={viewMode}
         data={displayData}
-        renderItem={({ item }) => {
-          const isCardFavorite = favorites.includes(item.id);
-
-          return (
-            <PetCard
-              pet={item}
-              isFavorite={isCardFavorite}
-              onFavoritePress={() => handleFavoritePress(item.id)}
-              onPress={() =>
-                router.push({ pathname: '/ilan/[id]', params: { id: item.id } })
-              }
-            />
-          );
-        }}
+        renderItem={renderItem}
+        numColumns={isCompactView ? 2 : 1}
+        estimatedItemSize={isCompactView ? 210 : 340}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -199,6 +239,10 @@ const styles = StyleSheet.create({
     flex: 1,
     width: '100%',
   },
+  categoryScroll: {
+    flexGrow: 0,
+    maxHeight: 65,
+  },
   categoryContent: {
     paddingHorizontal: 16,
     paddingVertical: 12,
@@ -225,10 +269,16 @@ const styles = StyleSheet.create({
   chipTextActive: {
     color: '#FFFFFF',
   },
-  searchInput: {
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 8,
+    gap: 10,
+  },
+  searchInput: {
+    flex: 1,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderColor: '#E5E7EB',
@@ -237,8 +287,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#111827',
   },
+  viewToggleButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: '#FFFFFF',
+    borderColor: '#E5E7EB',
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   listContainer: {
     padding: 16,
+  },
+  compactCardWrapper: {
+    flex: 1,
+    paddingHorizontal: 4,
   },
   floatingButton: {
     position: 'absolute',

@@ -62,6 +62,21 @@ const NotificationsScreen = () => {
       }
 
       const listingId = notification.data?.listing_id;
+      const isMutual = notification.data?.is_mutual;
+      const matchedUserId = notification.data?.matched_user_id;
+
+      if (isMutual && matchedUserId) {
+        router.push({
+          pathname: '/messages/[id]',
+          params: {
+            id: matchedUserId,
+            myPetId: notification.data?.my_pet_id ?? '',
+            matchedPetId: notification.data?.matched_pet_id ?? '',
+          },
+        });
+        return;
+      }
+
       if (listingId) {
         router.push({ pathname: '/ilan/[id]', params: { id: listingId } });
       }

@@ -4,10 +4,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import ThemedText from '../ThemedText';
 
-const ChatPetContextBanner = ({ petName }) => {
+const ChatPetContextBanner = ({
+  petName,
+  myPetName,
+  matchedPetName,
+}) => {
   const { colors } = useTheme();
 
-  if (!petName) return null;
+  const isMatchContext = myPetName && matchedPetName;
+
+  if (!petName && !isMatchContext) return null;
 
   return (
     <View
@@ -21,10 +27,25 @@ const ChatPetContextBanner = ({ petName }) => {
     >
       <Ionicons name='paw' size={14} color={colors.primary} />
       <ThemedText style={[styles.text, { color: colors.text }]}>
-        <ThemedText style={[styles.petName, { color: colors.title }]}>
-          {petName}
-        </ThemedText>{' '}
-        ilanı hakkında konuşuyorsunuz
+        {isMatchContext ? (
+          <>
+            <ThemedText style={[styles.petName, { color: colors.title }]}>
+              {myPetName}
+            </ThemedText>
+            {' ve '}
+            <ThemedText style={[styles.petName, { color: colors.title }]}>
+              {matchedPetName}
+            </ThemedText>
+            {' birbirinizi beğendi! Sohbete başlayın.'}
+          </>
+        ) : (
+          <>
+            <ThemedText style={[styles.petName, { color: colors.title }]}>
+              {petName}
+            </ThemedText>{' '}
+            ilanı hakkında konuşuyorsunuz
+          </>
+        )}
       </ThemedText>
     </View>
   );

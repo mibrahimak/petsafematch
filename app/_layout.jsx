@@ -5,6 +5,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import ThemeProvider from '../contexts/ThemeContext';
 
 import { AuthProvider } from '../contexts/AuthContext';
+import { MatchCelebrationProvider } from '../contexts/MatchCelebrationContext';
 import { ScrollProvider } from '../contexts/ScrollContext';
 import CustomHeader from '../components/CustomHeader';
 
@@ -39,9 +40,11 @@ export default function RootLayout() {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <ThemeProvider>
         <AuthProvider>
-          <ScrollProvider>
-            <LayoutContent />
-          </ScrollProvider>
+          <MatchCelebrationProvider>
+            <ScrollProvider>
+              <LayoutContent />
+            </ScrollProvider>
+          </MatchCelebrationProvider>
         </AuthProvider>
       </ThemeProvider>
     </GestureHandlerRootView>

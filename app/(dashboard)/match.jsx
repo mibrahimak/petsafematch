@@ -12,35 +12,129 @@ import {
 } from 'react-native';
 import { useRefresh } from '../../hooks/useRefresh';
 import { useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { AuthContext } from '../../contexts/AuthContext';
 import { useTheme } from '../../hooks/useTheme';
-import { useRouter } from 'expo-router';
 import { supabase } from '../../libs/supabase';
+import {
+  checkIsMutualMatch,
+  fetchExcludedTargetPetIds,
+  recordPetImpression,
+  recordPetSwipe,
+} from '../../libs/matchUtils';
+import { getHiddenPetIds as getCachedHiddenPetIds } from '../../libs/matchDeckCache';
+import { useMatchCelebration } from '../../contexts/MatchCelebrationContext';
+import { useMatchDeckStore } from '../../src/store/useMatchDeckStore';
 import { Ionicons } from '@expo/vector-icons';
 import Swiper from 'react-native-deck-swiper';
 
-// Themed Components
 import ThemedView from '../../components/ThemedView';
 import ThemedText from '../../components/ThemedText';
-
 import ThemedButton from '../../components/ThemedButton';
 
 const { width, height } = Dimensions.get('window');
 
+const mapCandidateRow = (row) => ({
+  id: row.user_pets.id,
+  match_mypet_id: row.id,
+  userId: row.userId,
+  name: row.user_pets.name,
+  species: row.user_pets.species,
+  age: row.user_pets.age,
+  gender: row.user_pets.gender,
+  category: row.user_pets.category,
+  image_url: row.user_pets.image_url,
+  location: row.profiles?.city ?? '',
+  description: '',
+});
+
 const Match = () => {
-  const { refreshing, onRefresh } = useRefresh();
   const { user } = useContext(AuthContext);
   const { colors } = useTheme();
   const router = useRouter();
+  const { showCelebration } = useMatchCelebration();
+  const hidePet = useMatchDeckStore((state) => state.hidePet);
+  const unhidePet = useMatchDeckStore((state) => state.unhidePet);
+  const getStoreHiddenPetIds = useMatchDeckStore((state) => state.getHiddenPetIds);
+  const mergeHiddenFromCache = useMatchDeckStore(
+    (state) => state.mergeHiddenFromCache
+  );
+
   const swiperRef = useRef(null);
+  const matchCandidatesRef = useRef([]);
+  const selectedMyPetRef = useRef(null);
 
   const [myPets, setMyPets] = useState([]);
   const [selectedMyPet, setSelectedMyPet] = useState(null);
   const [matchCandidates, setMatchCandidates] = useState([]);
   const [loading, setLoading] = useState(true);
 
+  useEffect(() => {
+    matchCandidatesRef.current = matchCandidates;
+  }, [matchCandidates]);
+
+  useEffect(() => {
+    selectedMyPetRef.current = selectedMyPet;
+  }, [selectedMyPet]);
+
+  const fetchCandidates = useCallback(
+    async (myPet) => {
+      if (!user?.id || !myPet?.id) return;
+
+      try {
+        const targetGender = myPet.gender === 'Erkek' ? 'Dişi' : 'Erkek';
+
+        const { data, error } = await supabase
+          .from('match_mypet')
+          .select(
+            `
+            id,
+            userId,
+            pet_id,
+            user_pets!inner (
+              id, name, category, species, gender, age, image_url
+            ),
+            profiles!userId ( city )
+          `
+          )
+          .eq('is_active', true)
+          .eq('user_pets.category', myPet.category)
+          .eq('user_pets.gender', targetGender)
+          .neq('userId', user.id);
+
+        if (error) throw error;
+
+        const cachedHidden = await getCachedHiddenPetIds(myPet.id);
+        mergeHiddenFromCache(myPet.id, cachedHidden);
+
+        const [excludedIds, storeHidden] = await Promise.all([
+          fetchExcludedTargetPetIds(supabase, myPet.id, user.id),
+          Promise.resolve(getStoreHiddenPetIds(myPet.id)),
+        ]);
+
+        const hiddenSet = new Set([...excludedIds, ...storeHidden, ...cachedHidden]);
+
+        const candidates = (data ?? [])
+          .filter((row) => !hiddenSet.has(row.user_pets.id))
+          .map(mapCandidateRow);
+
+        setMatchCandidates(candidates);
+      } catch (err) {
+        console.error('[fetchCandidates] Adaylar gelirken hata:', err);
+      } finally {
+        setLoading(false);
+      }
+    },
+    [user?.id, getStoreHiddenPetIds, mergeHiddenFromCache]
+  );
+
   const fetchMyPetsAndCandidates = useCallback(async () => {
-    if (!user?.id) return setLoading(true);
+    if (!user?.id) {
+      setLoading(true);
+      return;
+    }
+
+    setLoading(true);
 
     try {
       const { data: petsData, error: petsError } = await supabase
@@ -52,85 +146,100 @@ const Match = () => {
       setMyPets(petsData || []);
 
       if (petsData && petsData.length > 0) {
-        const activePet = selectedMyPet || petsData[0];
+        const activePet = selectedMyPetRef.current || petsData[0];
         setSelectedMyPet(activePet);
-
         await fetchCandidates(activePet);
       } else {
         setMatchCandidates([]);
         setLoading(false);
       }
     } catch (err) {
-      console.error('Veriler yüklenirken hata:', err);
+      console.error('[fetchMyPetsAndCandidates] Veriler yüklenirken hata:', err);
       Alert.alert('Hata', 'Bilgiler yüklenirken bir sorun oluştu.');
       setLoading(false);
     }
-  }, [user?.id, selectedMyPet]);
+  }, [user?.id, fetchCandidates]);
 
-  const fetchCandidates = async (myPet) => {
-    try {
-      const targetGender = myPet.gender === 'Erkek' ? 'Dişi' : 'Erkek';
+  const { refreshing, onRefresh } = useRefresh(fetchMyPetsAndCandidates);
 
-      const { data, error } = await supabase
-        .from('match_mypet')
-        .select(
-          `
-          id,
-          userId,
-          pet_id,
-          user_pets!inner (
-            id, name, category, species, gender, age, image_url
-          ),
-          profiles!userId ( city )
-        `
-        )
-        .eq('is_active', true)
-        .eq('user_pets.category', myPet.category)
-        .eq('user_pets.gender', targetGender)
-        .neq('userId', user.id);
+  useFocusEffect(
+    useCallback(() => {
+      fetchMyPetsAndCandidates();
 
-      if (error) throw error;
+      return () => {
+        const topCard = matchCandidatesRef.current[0];
+        const activePet = selectedMyPetRef.current;
 
-      const candidates = (data ?? []).map((row) => ({
-        id: row.user_pets.id,
-        match_mypet_id: row.id,
-        userId: row.userId,
-        name: row.user_pets.name,
-        species: row.user_pets.species,
-        age: row.user_pets.age,
-        gender: row.user_pets.gender,
-        category: row.user_pets.category,
-        image_url: row.user_pets.image_url,
-        location: row.profiles?.city ?? '',
-        description: '',
-      }));
+        if (!topCard || !activePet || !user?.id) return;
 
-      setMatchCandidates(candidates);
-    } catch (err) {
-      console.error('Adaylar gelirken hata:', err);
-    } finally {
-      setLoading(false);
-    }
-  };
+        hidePet(activePet.id, topCard.id);
 
-  useEffect(() => {
-    fetchMyPetsAndCandidates();
-  }, []);
+        recordPetImpression(supabase, {
+          swiperUserId: user.id,
+          swiperPetId: activePet.id,
+          targetPetId: topCard.id,
+          targetUserId: topCard.userId,
+        }).catch((error) => {
+          console.error('[match blur] Görüntülenme kaydedilirken hata:', error);
+        });
+      };
+    }, [user?.id, fetchMyPetsAndCandidates, hidePet])
+  );
 
   const handleMyPetChange = async (pet) => {
     setSelectedMyPet(pet);
+    selectedMyPetRef.current = pet;
     setLoading(true);
     await fetchCandidates(pet);
   };
 
-  const handleSwipedRight = async (cardIndex) => {
-    const candidate = matchCandidates[cardIndex];
-    console.log(`💚 ${selectedMyPet.name}, ${candidate.name} ilanını beğendi!`);
+  const handleSwipe = async (cardIndex, direction) => {
+    if (!user?.id || !selectedMyPet) return;
+
+    const candidate = matchCandidatesRef.current[cardIndex];
+    if (!candidate) return;
+
+    hidePet(selectedMyPet.id, candidate.id);
+
+    try {
+      await recordPetSwipe(supabase, {
+        swiperUserId: user.id,
+        swiperPetId: selectedMyPet.id,
+        targetPetId: candidate.id,
+        targetUserId: candidate.userId,
+        direction,
+      });
+
+      if (direction === 'like') {
+        const isMutual = await checkIsMutualMatch(
+          supabase,
+          selectedMyPet.id,
+          candidate.id
+        );
+
+        if (isMutual) {
+          showCelebration({
+            myPet: selectedMyPet,
+            matchedPet: {
+              id: candidate.id,
+              name: candidate.name,
+              image_url: candidate.image_url,
+            },
+            matchedUserId: candidate.userId,
+          });
+        }
+      }
+    } catch (err) {
+      console.error('[handleSwipe] Swipe kaydedilirken hata:', err);
+      unhidePet(selectedMyPet.id, candidate.id);
+      Alert.alert('Hata', 'İşlem kaydedilemedi. Lütfen tekrar deneyin.');
+      await fetchCandidates(selectedMyPet);
+    }
   };
 
-  const handleSwipedLeft = (cardIndex) => {
-    console.log(`❌ Pas geçildi: ${matchCandidates[cardIndex].name}`);
-  };
+  const handleSwipedRight = (cardIndex) => handleSwipe(cardIndex, 'like');
+
+  const handleSwipedLeft = (cardIndex) => handleSwipe(cardIndex, 'pass');
 
   if (loading) {
     return (

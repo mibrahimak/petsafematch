@@ -50,3 +50,6 @@ yarn-error.*
 .cursor/rules/02-frontend-ui-styling.mdc
 .cursor/rules/03-backend-supabase.mdc
 .cursor/rules/04-state-management.mdc
+
+# google services
+google-services.json

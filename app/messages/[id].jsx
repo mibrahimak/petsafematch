@@ -63,7 +63,8 @@ const formatMessageTime = (dateString) => {
 };
 
 const ChatScreen = () => {
-  const { id: otherUserId, listingId: listingIdParam } = useLocalSearchParams();
+  const { id: otherUserId, listingId: listingIdParam, myPetId, matchedPetId } =
+    useLocalSearchParams();
 
   const { user } = useContext(AuthContext);
   const { colors } = useTheme();
@@ -74,6 +75,7 @@ const ChatScreen = () => {
 
   const [otherProfile, setOtherProfile] = useState(null);
   const [listing, setListing] = useState(null);
+  const [matchPetNames, setMatchPetNames] = useState(null);
   const [messages, setMessages] = useState([]);
   const [inputText, setInputText] = useState('');
   const [loading, setLoading] = useState(true);
@@ -101,6 +103,31 @@ const ChatScreen = () => {
 
     if (!error) setOtherProfile(data);
   }, [otherUserId]);
+
+  const fetchMatchPetNames = useCallback(async () => {
+    if (!myPetId || !matchedPetId) {
+      setMatchPetNames(null);
+      return;
+    }
+
+    try {
+      const { data, error } = await supabase
+        .from('user_pets')
+        .select('id, name')
+        .in('id', [myPetId, matchedPetId]);
+
+      if (error) throw error;
+
+      const petMap = new Map((data || []).map((pet) => [pet.id, pet.name]));
+      setMatchPetNames({
+        myPetName: petMap.get(myPetId),
+        matchedPetName: petMap.get(matchedPetId),
+      });
+    } catch (error) {
+      console.error('[fetchMatchPetNames] Eşleşme pet bilgisi yüklenirken hata:', error);
+      setMatchPetNames(null);
+    }
+  }, [myPetId, matchedPetId]);
 
   const fetchListing = useCallback(async (listingId) => {
     if (!listingId) {
@@ -167,6 +194,10 @@ const ChatScreen = () => {
     fetchMessages();
     markAsRead();
   }, [fetchOtherProfile, fetchMessages, markAsRead]);
+
+  useEffect(() => {
+    fetchMatchPetNames();
+  }, [fetchMatchPetNames]);
 
   useEffect(() => {
     fetchListing(activeListingId);
@@ -476,7 +507,11 @@ const ChatScreen = () => {
         onBack={() => router.back()}
       />
 
-      <ChatPetContextBanner petName={listing?.name} />
+      <ChatPetContextBanner
+        petName={listing?.name}
+        myPetName={matchPetNames?.myPetName}
+        matchedPetName={matchPetNames?.matchedPetName}
+      />
 
       <KeyboardAvoidingView
         style={styles.container}

@@ -1,11 +1,22 @@
 import { useCallback, useState } from 'react';
 import { Platform } from 'react-native';
+import { isRunningInExpoGo } from 'expo';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
-import { Audio } from 'expo-av';
-import * as Notifications from 'expo-notifications';
+import {
+  getRecordingPermissionsAsync,
+  requestRecordingPermissionsAsync,
+} from 'expo-audio';
 
 const UNSUPPORTED = { status: 'unsupported', canAskAgain: false };
+
+const isNotificationsUnavailable =
+  Platform.OS === 'android' && isRunningInExpoGo();
+
+const getNotificationsModule = () => {
+  if (isNotificationsUnavailable) return null;
+  return require('expo-notifications');
+};
 
 const normalizePermission = (result) => ({
   status: result?.status ?? 'undetermined',
@@ -13,7 +24,8 @@ const normalizePermission = (result) => ({
 });
 
 const ensureAndroidNotificationChannel = async () => {
-  if (Platform.OS !== 'android') return;
+  const Notifications = getNotificationsModule();
+  if (!Notifications || Platform.OS !== 'android') return;
 
   await Notifications.setNotificationChannelAsync('default', {
     name: 'Varsayılan',
@@ -21,6 +33,19 @@ const ensureAndroidNotificationChannel = async () => {
     vibrationPattern: [0, 250, 250, 250],
     lightColor: '#2B62E5',
   });
+};
+
+const getNotificationPermissionsAsync = async () => {
+  const Notifications = getNotificationsModule();
+  if (!Notifications) return UNSUPPORTED;
+  return normalizePermission(await Notifications.getPermissionsAsync());
+};
+
+const requestNotificationPermissionsAsync = async () => {
+  const Notifications = getNotificationsModule();
+  if (!Notifications) return UNSUPPORTED;
+  await ensureAndroidNotificationChannel();
+  return normalizePermission(await Notifications.requestPermissionsAsync());
 };
 
 const INITIAL_PERMISSIONS = {
@@ -60,8 +85,8 @@ export const useDevicePermissions = () => {
         Location.getForegroundPermissionsAsync(),
         ImagePicker.getCameraPermissionsAsync(),
         ImagePicker.getMediaLibraryPermissionsAsync(),
-        Audio.getPermissionsAsync(),
-        Notifications.getPermissionsAsync(),
+        getRecordingPermissionsAsync(),
+        getNotificationPermissionsAsync(),
       ]);
 
       setPermissions({
@@ -69,7 +94,7 @@ export const useDevicePermissions = () => {
         camera: normalizePermission(cameraResult),
         mediaLibrary: normalizePermission(mediaLibraryResult),
         microphone: normalizePermission(microphoneResult),
-        notifications: normalizePermission(notificationsResult),
+        notifications: notificationsResult,
       });
     } catch (error) {
       console.error('[useDevicePermissions] İzinler okunamadı:', error);
@@ -79,53 +104,49 @@ export const useDevicePermissions = () => {
     }
   }, []);
 
-  const requestPermission = useCallback(
-    async (key) => {
-      if (Platform.OS === 'web') {
-        return UNSUPPORTED;
+  const requestPermission = useCallback(async (key) => {
+    if (Platform.OS === 'web') {
+      return UNSUPPORTED;
+    }
+
+    try {
+      let result = UNSUPPORTED;
+
+      switch (key) {
+        case 'location':
+          result = normalizePermission(
+            await Location.requestForegroundPermissionsAsync()
+          );
+          break;
+        case 'camera':
+          result = normalizePermission(
+            await ImagePicker.requestCameraPermissionsAsync()
+          );
+          break;
+        case 'mediaLibrary':
+          result = normalizePermission(
+            await ImagePicker.requestMediaLibraryPermissionsAsync()
+          );
+          break;
+        case 'microphone':
+          result = normalizePermission(
+            await requestRecordingPermissionsAsync()
+          );
+          break;
+        case 'notifications':
+          result = await requestNotificationPermissionsAsync();
+          break;
+        default:
+          throw new Error(`Bilinmeyen izin anahtarı: ${key}`);
       }
 
-      try {
-        let result = UNSUPPORTED;
-
-        switch (key) {
-          case 'location':
-            result = normalizePermission(
-              await Location.requestForegroundPermissionsAsync()
-            );
-            break;
-          case 'camera':
-            result = normalizePermission(
-              await ImagePicker.requestCameraPermissionsAsync()
-            );
-            break;
-          case 'mediaLibrary':
-            result = normalizePermission(
-              await ImagePicker.requestMediaLibraryPermissionsAsync()
-            );
-            break;
-          case 'microphone':
-            result = normalizePermission(await Audio.requestPermissionsAsync());
-            break;
-          case 'notifications':
-            await ensureAndroidNotificationChannel();
-            result = normalizePermission(
-              await Notifications.requestPermissionsAsync()
-            );
-            break;
-          default:
-            throw new Error(`Bilinmeyen izin anahtarı: ${key}`);
-        }
-
-        setPermissions((prev) => ({ ...prev, [key]: result }));
-        return result;
-      } catch (error) {
-        console.error(`[useDevicePermissions] ${key} izni istenemedi:`, error);
-        throw error;
-      }
-    },
-    []
-  );
+      setPermissions((prev) => ({ ...prev, [key]: result }));
+      return result;
+    } catch (error) {
+      console.error(`[useDevicePermissions] ${key} izni istenemedi:`, error);
+      throw error;
+    }
+  }, []);
 
   return {
     permissions,

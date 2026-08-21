@@ -8,13 +8,23 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "buildNumber": "1"
+      "buildNumber": "1",
+      "infoPlist": {
+        "NSMicrophoneUsageDescription": "Sesli mesaj göndermek için mikrofon izni gerekir."
+      }
     },
     "android": {
       "adaptiveIcon": {
         "backgroundColor": "#ffffff"
       },
-      "versionCode": 1
+      "versionCode": 1,
+      "permissions": [
+        "android.permission.RECORD_AUDIO",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "package": "com.anonymous.PetSafeMatch",
+      "googleServicesFile": "./google-services.json"
     },
     "plugins": [
       "expo-router",
@@ -41,12 +51,8 @@
         }
       ],
       "expo-notifications",
-      [
-        "expo-av",
-        {
-          "microphonePermission": "Sesli mesaj göndermek için mikrofon izni gerekir."
-        }
-      ]
+      "expo-secure-store",
+      "expo-status-bar"
     ]
   }
 }

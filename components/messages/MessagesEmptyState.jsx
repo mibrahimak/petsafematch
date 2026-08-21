@@ -32,7 +32,7 @@ const MessagesEmptyState = ({ isSearchResult = false, searchQuery = '' }) => {
         Henüz bir mesajınız yok
       </ThemedText>
       <ThemedText style={[styles.subtitle, { color: colors.label }]}>
-        İlanlardan mesaj göndererek konuşmaya başlayın
+        Eşleşmelerden veya ilanlardan mesaj göndererek konuşmaya başlayın
       </ThemedText>
     </View>
   );

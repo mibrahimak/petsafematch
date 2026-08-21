@@ -15,8 +15,10 @@ import ThemedView from '../../components/ThemedView';
 import MessagesListHeader from '../../components/messages/MessagesListHeader';
 import MessagesSearchBar from '../../components/messages/MessagesSearchBar';
 import OnlineUsersStrip from '../../components/messages/OnlineUsersStrip';
+import MatchesSection from '../../components/messages/MatchesSection';
 import MessagesEmptyState from '../../components/messages/MessagesEmptyState';
 import SwipeableConversationRow from '../../components/messages/SwipeableConversationRow';
+import { fetchUserMatches } from '../../libs/matchUtils';
 
 const MessagesList = () => {
   const { user } = useContext(AuthContext);
@@ -24,10 +26,22 @@ const MessagesList = () => {
   const router = useRouter();
 
   const [conversations, setConversations] = useState([]);
+  const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [blockedIds, setBlockedIds] = useState(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const swipeableRefs = useRef({});
+
+  const fetchMatches = useCallback(async () => {
+    if (!user?.id) return;
+
+    try {
+      const data = await fetchUserMatches(supabase, user.id);
+      setMatches(data);
+    } catch (err) {
+      console.error('[fetchMatches] Eşleşmeler yüklenirken hata:', err);
+    }
+  }, [user?.id]);
 
   const fetchConversations = useCallback(async () => {
     if (!user?.id) return;
@@ -71,7 +85,6 @@ const MessagesList = () => {
       const otherIds = Array.from(lastMessageMap.keys());
       if (otherIds.length === 0) {
         setConversations([]);
-        setLoading(false);
         return;
       }
 
@@ -121,14 +134,40 @@ const MessagesList = () => {
       setBlockedIds(new Set(blocked));
     } catch (err) {
       console.error('[fetchConversations] Konuşmalar yüklenirken hata:', err);
-    } finally {
-      setLoading(false);
     }
   }, [user?.id]);
 
   useEffect(() => {
-    fetchConversations();
-  }, [fetchConversations]);
+    const loadData = async () => {
+      setLoading(true);
+      await Promise.all([fetchConversations(), fetchMatches()]);
+      setLoading(false);
+    };
+    loadData();
+  }, [fetchConversations, fetchMatches]);
+
+  useEffect(() => {
+    if (!user?.id) return;
+
+    const channel = supabase
+      .channel(`pet-matches-${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'pet_matches',
+        },
+        () => {
+          fetchMatches();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user?.id, fetchMatches]);
 
   const totalUnreadCount = useMemo(
     () => conversations.reduce((sum, item) => sum + item.unreadCount, 0),
@@ -184,6 +223,20 @@ const MessagesList = () => {
     });
   }, []);
 
+  const handleOpenMatch = useCallback(
+    (match) => {
+      router.push({
+        pathname: '/messages/[id]',
+        params: {
+          id: match.otherUserId,
+          myPetId: match.myPetId ?? '',
+          matchedPetId: match.matchedPetId ?? '',
+        },
+      });
+    },
+    [router]
+  );
+
   const handleOpenConversation = useCallback(
     (otherUserId) => {
       router.push(`/messages/${otherUserId}`);
@@ -224,18 +277,19 @@ const MessagesList = () => {
     () => (
       <View>
         <MessagesSearchBar value={searchQuery} onChangeText={setSearchQuery} />
+        <MatchesSection matches={matches} onPressMatch={handleOpenMatch} />
         <OnlineUsersStrip
           conversations={conversations}
           onPressConversation={handleOpenConversation}
         />
-        {conversations.length > 0 ? (
+        {conversations.length > 0 || matches.length > 0 ? (
           <View
             style={[styles.divider, { backgroundColor: colors.borderColor }]}
           />
         ) : null}
       </View>
     ),
-    [searchQuery, conversations, colors.borderColor, handleOpenConversation]
+    [searchQuery, conversations, matches, colors.borderColor, handleOpenMatch, handleOpenConversation]
   );
 
   return (
@@ -249,9 +303,11 @@ const MessagesList = () => {
         <View style={styles.centerContainer}>
           <ActivityIndicator size='large' color={colors.primary} />
         </View>
-      ) : conversations.length === 0 ? (
+      ) : conversations.length === 0 && matches.length === 0 ? (
         <MessagesEmptyState />
-      ) : filteredConversations.length === 0 ? (
+      ) : conversations.length === 0 && matches.length > 0 ? (
+        listHeader
+      ) : filteredConversations.length === 0 && conversations.length > 0 ? (
         <>
           {listHeader}
           <MessagesEmptyState isSearchResult searchQuery={searchQuery} />

@@ -45,7 +45,8 @@ const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState(false);
 
   const { user } = useContext(AuthContext);
-  const { viewMode, isCompactView, uiVisible, setUiVisible } = useHomeScreen();
+  const { viewMode, isCompactView, uiVisible, setUiVisible, setViewMode } =
+    useHomeScreen();
   const { refreshing, onRefresh } = useRefresh();
 
   const favorites = useFavoriteStore((state) => state.favorites);
@@ -144,6 +145,7 @@ const HomeScreen = () => {
         onSearchChange={setSearchQuery}
         resultCount={displayData.length}
         viewMode={viewMode}
+        onViewModeChange={setViewMode}
       />
 
       <FlashList

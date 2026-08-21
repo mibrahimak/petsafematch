@@ -6,28 +6,19 @@ import {
 } from 'react-native';
 import React, { useContext } from 'react';
 import { useTheme } from '../hooks/useTheme';
-import { useRouter, useSegments } from 'expo-router';
+import { useRouter } from 'expo-router';
 import { Ionicons, Feather } from '@expo/vector-icons';
 import AppLogo from './AppLogo';
 import ThemedView from './ThemedView';
 import NotificationBadge from './NotificationBadge';
 import MessageBadge from './MessageBadge';
-import ViewToggle from './home/ViewToggle';
 import { AuthContext } from '../contexts/AuthContext';
-import { useHomeScreen } from '../contexts/HomeScreenContext';
-
-const isHomeSegment = (segments) =>
-  segments[0] === '(dashboard)' &&
-  (segments.length === 1 || segments[1] === 'index');
 
 const CustomHeader = () => {
   const { profile } = useContext(AuthContext);
-  const { viewMode, setViewMode } = useHomeScreen();
 
   const { colors } = useTheme();
   const router = useRouter();
-  const segments = useSegments();
-  const isHomeScreen = isHomeSegment(segments);
 
   const fullName = profile?.full_name || 'Kullanıcı Adı';
   const avatarUrl =
@@ -58,10 +49,6 @@ const CustomHeader = () => {
         </View>
 
         <View style={styles.actionIcons}>
-          {isHomeScreen && (
-            <ViewToggle viewMode={viewMode} onViewModeChange={setViewMode} />
-          )}
-
           <Pressable
             onPress={() => router.push('/notifications')}
             style={styles.iconButton}
@@ -124,9 +111,8 @@ const styles = StyleSheet.create({
   actionIcons: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
   },
   iconButton: {
-    marginLeft: 8,
+    marginLeft: 16,
   },
 });

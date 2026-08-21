@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { useTheme } from '../../hooks/useTheme';
 import ThemedText from '../ThemedText';
+import ViewToggle from './ViewToggle';
 
 const ANIMATION_DURATION = 280;
 const COLLAPSED_MAX_HEIGHT = 220;
@@ -36,9 +37,12 @@ const HomeFiltersPanel = ({
   onSearchChange,
   resultCount,
   viewMode,
+  onViewModeChange,
 }) => {
   const { colors } = useTheme();
-  const animatedHeight = useRef(new Animated.Value(COLLAPSED_MAX_HEIGHT)).current;
+  const animatedHeight = useRef(
+    new Animated.Value(COLLAPSED_MAX_HEIGHT)
+  ).current;
   const animatedOpacity = useRef(new Animated.Value(1)).current;
   const [contentHeight, setContentHeight] = useState(COLLAPSED_MAX_HEIGHT);
 
@@ -56,9 +60,6 @@ const HomeFiltersPanel = ({
       }),
     ]).start();
   }, [uiVisible, contentHeight, animatedHeight, animatedOpacity]);
-
-  const viewModeLabel =
-    viewMode === 'large' ? 'Liste görünümü' : 'Izgara görünümü';
 
   return (
     <Animated.View
@@ -112,17 +113,14 @@ const HomeFiltersPanel = ({
         />
 
         <View style={styles.resultRow}>
+          <ViewToggle viewMode={viewMode} onViewModeChange={onViewModeChange} />
           <ThemedText style={[styles.resultCount, { color: colors.label }]}>
             <ThemedText
               style={[styles.resultCountValue, { color: colors.title }]}
             >
               {resultCount}
-            </ThemedText>
-            {' '}
+            </ThemedText>{' '}
             ilan bulundu
-          </ThemedText>
-          <ThemedText style={[styles.viewModeLabel, { color: colors.label }]}>
-            {viewModeLabel}
           </ThemedText>
         </View>
       </View>
@@ -135,7 +133,6 @@ export default memo(HomeFiltersPanel);
 const styles = StyleSheet.create({
   collapsible: {
     overflow: 'hidden',
-    borderBottomWidth: 1,
   },
   categoryScroll: {
     flexGrow: 0,
@@ -181,16 +178,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingBottom: 8,
   },
   resultCount: {
     fontSize: 12,
   },
   resultCountValue: {
     fontWeight: '600',
-  },
-  viewModeLabel: {
-    fontSize: 10,
-    fontWeight: '500',
   },
 });

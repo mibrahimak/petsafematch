@@ -7,10 +7,7 @@ import React, {
 } from 'react';
 import {
   StyleSheet,
-  TextInput,
   Pressable,
-  Text,
-  ScrollView,
   RefreshControl,
   Alert,
   View,
@@ -21,12 +18,14 @@ import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { useRefresh } from '../../hooks/useRefresh';
 import { AuthContext } from '../../contexts/AuthContext';
+import { useHomeScreen } from '../../contexts/HomeScreenContext';
+import { useScrollHideUi } from '../../hooks/useScrollHideUi';
 import { FlashList } from '@shopify/flash-list';
 
 import CreateListingModal from '../../components/CreateListingModal';
 import ThemedView from '../../components/ThemedView';
+import HomeFiltersPanel from '../../components/home/HomeFiltersPanel';
 import PetCard from '../../src/components/petCard';
-import { useTheme } from '../../hooks/useTheme';
 
 const CATEGORIES = ['Hepsi', 'Kedi', 'Köpek', 'Kuş', 'Diğer'];
 
@@ -40,30 +39,13 @@ const normalizeText = (value) =>
     .replace(/ö/g, 'o')
     .replace(/ç/g, 'c');
 
-const CategoryChip = React.memo(function CategoryChip({
-  label,
-  isActive,
-  onPress,
-}) {
-  return (
-    <Pressable
-      style={[styles.chip, isActive && styles.chipActive]}
-      onPress={onPress}
-    >
-      <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
-        {label}
-      </Text>
-    </Pressable>
-  );
-});
-
 const HomeScreen = () => {
   const [activeCategory, setActiveCategory] = useState('Hepsi');
   const [searchQuery, setSearchQuery] = useState();
   const [modalVisible, setModalVisible] = useState(false);
-  const [viewMode, setViewMode] = useState('large');
 
   const { user } = useContext(AuthContext);
+  const { viewMode, isCompactView, uiVisible, setUiVisible } = useHomeScreen();
   const { refreshing, onRefresh } = useRefresh();
 
   const favorites = useFavoriteStore((state) => state.favorites);
@@ -72,8 +54,7 @@ const HomeScreen = () => {
   const fetchPets = usePetStore((state) => state.fetchPets);
 
   const router = useRouter();
-
-  const isCompactView = viewMode === 'compact';
+  const handleScroll = useScrollHideUi(setUiVisible);
 
   useEffect(() => {
     fetchPets();
@@ -123,10 +104,6 @@ const HomeScreen = () => {
     [user?.id, toggleFavorite, router]
   );
 
-  const handleViewModeToggle = useCallback(() => {
-    setViewMode((current) => (current === 'large' ? 'compact' : 'large'));
-  }, []);
-
   const handlePetPress = useCallback(
     (petId) => {
       router.push({ pathname: '/ilan/[id]', params: { id: petId } });
@@ -158,45 +135,16 @@ const HomeScreen = () => {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView
-        horizontal
-        contentContainerStyle={styles.categoryContent}
-        showsHorizontalScrollIndicator={false}
-        alwaysBounceHorizontal={false}
-        style={styles.categoryScroll}
-      >
-        {CATEGORIES.map((category) => (
-          <CategoryChip
-            key={category}
-            label={category}
-            isActive={activeCategory === category}
-            onPress={() => handleCategoryChange(category)}
-          />
-        ))}
-      </ScrollView>
-
-      <View style={styles.searchRow}>
-        <TextInput
-          value={searchQuery}
-          onChangeText={setSearchQuery}
-          placeholder='Irk, isim veya açıklama ara...'
-          placeholderTextColor='#9CA3AF'
-          style={styles.searchInput}
-        />
-        <Pressable
-          style={styles.viewToggleButton}
-          onPress={handleViewModeToggle}
-          accessibilityLabel={
-            isCompactView ? 'Büyük görünüm' : 'Kompakt görünüm'
-          }
-        >
-          <Ionicons
-            name={isCompactView ? 'list-outline' : 'grid-outline'}
-            size={22}
-            color='#374151'
-          />
-        </Pressable>
-      </View>
+      <HomeFiltersPanel
+        uiVisible={uiVisible}
+        categories={CATEGORIES}
+        activeCategory={activeCategory}
+        onCategoryChange={handleCategoryChange}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        resultCount={displayData.length}
+        viewMode={viewMode}
+      />
 
       <FlashList
         key={viewMode}
@@ -204,6 +152,7 @@ const HomeScreen = () => {
         renderItem={renderItem}
         numColumns={isCompactView ? 2 : 1}
         estimatedItemSize={isCompactView ? 210 : 340}
+        onScroll={handleScroll}
         refreshControl={
           <RefreshControl
             refreshing={refreshing}
@@ -238,64 +187,6 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     width: '100%',
-  },
-  categoryScroll: {
-    flexGrow: 0,
-    maxHeight: 65,
-  },
-  categoryContent: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    gap: 10,
-    alignItems: 'center',
-    height: 65,
-  },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 999,
-    backgroundColor: '#E5E7EB',
-    justifyContent: 'center',
-    height: 36,
-  },
-  chipActive: {
-    backgroundColor: '#2563EB',
-  },
-  chipText: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: '#374151',
-  },
-  chipTextActive: {
-    color: '#FFFFFF',
-  },
-  searchRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 8,
-    gap: 10,
-  },
-  searchInput: {
-    flex: 1,
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    borderColor: '#E5E7EB',
-    paddingHorizontal: 14,
-    paddingVertical: 11,
-    fontSize: 14,
-    color: '#111827',
-  },
-  viewToggleButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: '#FFFFFF',
-    borderColor: '#E5E7EB',
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   listContainer: {
     padding: 16,

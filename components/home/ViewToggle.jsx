@@ -37,10 +37,7 @@ const ViewToggle = ({ viewMode, onViewModeChange }) => {
         return (
           <Pressable
             key={mode}
-            style={[
-              styles.segment,
-              isActive && { backgroundColor: colors.primary },
-            ]}
+            style={[styles.segment, isActive && { backgroundColor: '#2563EB' }]}
             onPress={() => handlePress(mode)}
             accessibilityLabel={label}
             accessibilityState={{ selected: isActive }}

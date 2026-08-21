@@ -30,7 +30,8 @@ export default memo(MessageDateSeparator);
 const styles = StyleSheet.create({
   container: {
     alignItems: 'center',
-    marginVertical: 12,
+    marginTop: 4,
+    marginBottom: 12,
   },
   pill: {
     paddingHorizontal: 12,
@@ -40,6 +41,6 @@ const styles = StyleSheet.create({
   },
   label: {
     fontSize: 10,
-    fontWeight: '700',
+    fontWeight: '600',
   },
 });

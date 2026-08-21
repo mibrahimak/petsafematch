@@ -1,19 +1,34 @@
 import { memo } from 'react';
-import { Image, Pressable, StyleSheet, View } from 'react-native';
+import { Alert, Image, Pressable, StyleSheet, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTheme } from '../../hooks/useTheme';
 import ThemedText from '../ThemedText';
 import { formatLastSeen, isUserOnline } from '../../utils/presenceUtils';
 
-const ChatHeader = ({ fullName, avatarUrl, lastSeenAt, onBack }) => {
+const ChatHeader = ({
+  fullName,
+  avatarUrl,
+  lastSeenAt,
+  onBack,
+  onMenuPress,
+}) => {
   const { colors } = useTheme();
   const online = isUserOnline(lastSeenAt);
+
+  const handleMenuPress = () => {
+    if (onMenuPress) {
+      onMenuPress();
+      return;
+    }
+    Alert.alert('Yakında', 'Bu özellik yakında eklenecek.');
+  };
 
   return (
     <View
       style={[
         styles.header,
         {
+          backgroundColor: colors.background,
           borderBottomColor: colors.borderColor,
         },
       ]}
@@ -51,9 +66,22 @@ const ChatHeader = ({ fullName, avatarUrl, lastSeenAt, onBack }) => {
           style={[styles.status, { color: online ? '#10b981' : colors.label }]}
           numberOfLines={1}
         >
-          {formatLastSeen(lastSeenAt)}
+          {online ? 'Çevrimiçi' : formatLastSeen(lastSeenAt)}
         </ThemedText>
       </View>
+
+      <Pressable
+        style={[
+          styles.iconButton,
+          {
+            backgroundColor: colors.uiBackground,
+            borderColor: colors.borderColor,
+          },
+        ]}
+        onPress={handleMenuPress}
+      >
+        <Ionicons name='ellipsis-vertical' size={16} color={colors.label} />
+      </Pressable>
     </View>
   );
 };
@@ -67,7 +95,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
-    gap: 12,
+    gap: 10,
   },
   iconButton: {
     width: 36,
@@ -76,9 +104,11 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   avatarWrapper: {
     position: 'relative',
+    flexShrink: 0,
   },
   avatar: {
     width: 38,
@@ -102,6 +132,7 @@ const styles = StyleSheet.create({
   name: {
     fontSize: 14,
     fontWeight: '700',
+    lineHeight: 18,
   },
   status: {
     fontSize: 11,

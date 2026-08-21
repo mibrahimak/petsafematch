@@ -7,7 +7,14 @@ import {
   Alert,
 } from 'react-native';
 
-import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Clipboard from 'expo-clipboard';
 import { AuthContext } from '../../contexts/AuthContext';
@@ -63,8 +70,12 @@ const formatMessageTime = (dateString) => {
 };
 
 const ChatScreen = () => {
-  const { id: otherUserId, listingId: listingIdParam, myPetId, matchedPetId } =
-    useLocalSearchParams();
+  const {
+    id: otherUserId,
+    listingId: listingIdParam,
+    myPetId,
+    matchedPetId,
+  } = useLocalSearchParams();
 
   const { user } = useContext(AuthContext);
   const { colors } = useTheme();
@@ -72,6 +83,7 @@ const ChatScreen = () => {
 
   const flashListRef = useRef(null);
   const inputRef = useRef(null);
+  const swipeableRefs = useRef({});
 
   const [otherProfile, setOtherProfile] = useState(null);
   const [listing, setListing] = useState(null);
@@ -124,7 +136,10 @@ const ChatScreen = () => {
         matchedPetName: petMap.get(matchedPetId),
       });
     } catch (error) {
-      console.error('[fetchMatchPetNames] Eşleşme pet bilgisi yüklenirken hata:', error);
+      console.error(
+        '[fetchMatchPetNames] Eşleşme pet bilgisi yüklenirken hata:',
+        error
+      );
       setMatchPetNames(null);
     }
   }, [myPetId, matchedPetId]);
@@ -138,7 +153,7 @@ const ChatScreen = () => {
     try {
       const { data, error } = await supabase
         .from('listings')
-        .select('id, name')
+        .select('id, name, city')
         .eq('id', listingId)
         .single();
 
@@ -243,9 +258,7 @@ const ChatScreen = () => {
               return prev.filter((m) => m.id !== payload.new.id);
             }
 
-            return prev.map((m) =>
-              m.id === payload.new.id ? payload.new : m
-            );
+            return prev.map((m) => (m.id === payload.new.id ? payload.new : m));
           });
         }
       )
@@ -275,9 +288,7 @@ const ChatScreen = () => {
               return [...prev, payload.new];
             }
 
-            return prev.map((m) =>
-              m.id === payload.new.id ? payload.new : m
-            );
+            return prev.map((m) => (m.id === payload.new.id ? payload.new : m));
           });
         }
       )
@@ -391,7 +402,10 @@ const ChatScreen = () => {
           '[handleDeleteForEveryone] Mesaj silinirken hata:',
           error
         );
-        Alert.alert('Hata', 'Mesaj herkesten silinemedi. Lütfen tekrar deneyin.');
+        Alert.alert(
+          'Hata',
+          'Mesaj herkesten silinemedi. Lütfen tekrar deneyin.'
+        );
         fetchMessages();
       }
     },
@@ -417,7 +431,11 @@ const ChatScreen = () => {
         });
       }
 
-      Alert.alert('Mesajı sil', 'Bu mesajı nasıl silmek istiyorsunuz?', options);
+      Alert.alert(
+        'Mesajı sil',
+        'Bu mesajı nasıl silmek istiyorsunuz?',
+        options
+      );
     },
     [user.id, handleDeleteForMe, handleDeleteForEveryone]
   );
@@ -425,6 +443,14 @@ const ChatScreen = () => {
   const handleReply = useCallback((message) => {
     setReplyingTo(message);
     inputRef.current?.focus();
+  }, []);
+
+  const handleSwipeableWillOpen = useCallback((messageId) => {
+    Object.entries(swipeableRefs.current).forEach(([id, ref]) => {
+      if (id !== messageId && ref?.close) {
+        ref.close();
+      }
+    });
   }, []);
 
   const handleLongPress = useCallback((message, anchor) => {
@@ -484,10 +510,21 @@ const ChatScreen = () => {
           formatMessageTime={formatMessageTime}
           onLongPress={handleLongPress}
           onReply={handleReply}
+          swipeableRef={(ref) => {
+            swipeableRefs.current[message.id] = ref;
+          }}
+          onSwipeableWillOpen={() => handleSwipeableWillOpen(message.id)}
         />
       );
     },
-    [user.id, colors, fullName, handleLongPress, handleReply]
+    [
+      user.id,
+      colors,
+      fullName,
+      handleLongPress,
+      handleReply,
+      handleSwipeableWillOpen,
+    ]
   );
 
   if (loading) {
@@ -499,72 +536,73 @@ const ChatScreen = () => {
   }
 
   return (
-    <ThemedView style={styles.container} safe={true}>
-      <ChatHeader
-        fullName={fullName}
-        avatarUrl={avatarUrl}
-        lastSeenAt={getVisibleLastSeen(otherProfile)}
-        onBack={() => router.back()}
-      />
-
-      <ChatPetContextBanner
-        petName={listing?.name}
-        myPetName={matchPetNames?.myPetName}
-        matchedPetName={matchPetNames?.matchedPetName}
-      />
-
-      <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      >
-        <FlashList
-          ref={flashListRef}
-          data={listItems}
-          keyExtractor={(item) => item.id.toString()}
-          renderItem={renderItem}
-          contentContainerStyle={styles.messagesList}
-          onContentSizeChange={() =>
-            flashListRef.current?.scrollToEnd({ animated: true })
-          }
+    <>
+      <ThemedView style={styles.container} safe={true}>
+        <ChatHeader
+          fullName={fullName}
+          avatarUrl={avatarUrl}
+          lastSeenAt={getVisibleLastSeen(otherProfile)}
+          onBack={() => router.back()}
         />
 
-        {isBlocked ? (
-          <View style={styles.blockedBanner}>
-            <ThemedText style={styles.blockedText}>
-              Bu kullanıcıyla mesajlaşma engellendi.
-            </ThemedText>
-          </View>
-        ) : null}
-
-        <ReplyPreviewBar
-          message={replyingTo}
-          senderName={
-            replyingTo?.sender_id === user.id ? 'Sen' : fullName
-          }
-          colors={colors}
-          onCancel={() => setReplyingTo(null)}
+        <ChatPetContextBanner
+          petName={listing?.name}
+          myPetName={matchPetNames?.myPetName}
+          matchedPetName={matchPetNames?.matchedPetName}
+          listingCity={listing?.city}
         />
 
-        <ChatInputBar
-          inputRef={inputRef}
-          value={inputText}
-          onChangeText={setInputText}
-          onSend={handleSend}
-          editable={!isBlocked}
-          placeholder={isBlocked ? 'Mesaj gönderilemez' : 'Mesaj yaz'}
-        />
-      </KeyboardAvoidingView>
+        <KeyboardAvoidingView
+          style={styles.container}
+          behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        >
+          <FlashList
+            ref={flashListRef}
+            data={listItems}
+            keyExtractor={(item) => item.id.toString()}
+            renderItem={renderItem}
+            contentContainerStyle={styles.messagesList}
+            onContentSizeChange={() =>
+              flashListRef.current?.scrollToEnd({ animated: true })
+            }
+          />
 
-      <MessageActionMenu
-        visible={actionMenu.visible}
-        anchor={actionMenu.anchor}
-        isMine={actionMenu.isMine}
-        onClose={closeActionMenu}
-        onReply={() => handleReply(actionMenu.message)}
-        onCopy={() => handleCopy(actionMenu.message?.content)}
-        onDelete={() => handleShowDeleteOptions(actionMenu.message)}
+          {isBlocked ? (
+            <View style={styles.blockedBanner}>
+              <ThemedText style={styles.blockedText}>
+                Bu kullanıcıyla mesajlaşma engellendi.
+              </ThemedText>
+            </View>
+          ) : null}
+
+          <ReplyPreviewBar
+            message={replyingTo}
+            senderName={replyingTo?.sender_id === user.id ? 'Sen' : fullName}
+            colors={colors}
+            onCancel={() => setReplyingTo(null)}
+          />
+        </KeyboardAvoidingView>
+
+        <MessageActionMenu
+          visible={actionMenu.visible}
+          anchor={actionMenu.anchor}
+          isMine={actionMenu.isMine}
+          onClose={closeActionMenu}
+          onReply={() => handleReply(actionMenu.message)}
+          onCopy={() => handleCopy(actionMenu.message?.content)}
+          onDelete={() => handleShowDeleteOptions(actionMenu.message)}
+        />
+      </ThemedView>
+
+      <ChatInputBar
+        inputRef={inputRef}
+        value={inputText}
+        onChangeText={setInputText}
+        onSend={handleSend}
+        editable={!isBlocked}
+        placeholder={isBlocked ? 'Mesaj gönderilemez' : 'Mesaj yaz'}
       />
-    </ThemedView>
+    </>
   );
 };
 
@@ -573,7 +611,7 @@ export default ChatScreen;
 const styles = StyleSheet.create({
   container: { flex: 1 },
   centerContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  messagesList: { padding: 16, paddingBottom: 8 },
+  messagesList: { paddingHorizontal: 12, paddingTop: 12, paddingBottom: 8 },
   blockedBanner: {
     paddingHorizontal: 16,
     paddingVertical: 10,

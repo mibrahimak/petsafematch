@@ -1,7 +1,12 @@
 import { memo } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Alert, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../../hooks/useTheme';
+
+const handleComingSoon = () => {
+  Alert.alert('Yakında', 'Bu özellik yakında eklenecek.');
+};
 
 const ChatInputBar = ({
   value,
@@ -12,19 +17,35 @@ const ChatInputBar = ({
   inputRef,
 }) => {
   const { colors } = useTheme();
+  const insets = useSafeAreaInsets();
   const hasText = value.trim().length > 0;
+
+  const handleFabPress = () => {
+    if (hasText) {
+      onSend();
+      return;
+    }
+    handleComingSoon();
+  };
 
   return (
     <View
       style={[
         styles.container,
         {
+          backgroundColor: colors.navBackground,
           borderTopColor: colors.borderColor,
+          paddingBottom: Math.max(insets.bottom, 12),
         },
       ]}
     >
-      <Pressable disabled={!editable} hitSlop={8}>
-        <Ionicons name='attach' size={20} color={colors.iconColor} />
+      <Pressable
+        disabled={!editable}
+        hitSlop={8}
+        style={styles.emojiButton}
+        onPress={handleComingSoon}
+      >
+        <Ionicons name='happy-outline' size={24} color={colors.label} />
       </Pressable>
 
       <View
@@ -46,26 +67,44 @@ const ChatInputBar = ({
           multiline
           editable={editable}
         />
-        <Pressable disabled={!editable} hitSlop={8}>
-          <Ionicons name='happy-outline' size={17} color={colors.iconColor} />
-        </Pressable>
+        {!hasText ? (
+          <>
+            <Pressable
+              disabled={!editable}
+              hitSlop={8}
+              style={styles.pillIconButton}
+              onPress={handleComingSoon}
+            >
+              <Ionicons name='attach' size={19} color={colors.label} />
+            </Pressable>
+            <Pressable
+              disabled={!editable}
+              hitSlop={8}
+              style={styles.pillIconButton}
+              onPress={handleComingSoon}
+            >
+              <Ionicons name='camera-outline' size={19} color={colors.label} />
+            </Pressable>
+          </>
+        ) : null}
       </View>
 
       <Pressable
-        onPress={onSend}
-        disabled={!editable || !hasText}
+        onPress={handleFabPress}
+        disabled={!editable}
         style={[
-          styles.sendButton,
+          styles.fabButton,
           {
-            backgroundColor: hasText ? colors.primary : colors.uiBackground,
-            borderColor: hasText ? colors.primary : colors.borderColor,
+            backgroundColor: colors.primary,
+            shadowColor: colors.primary,
           },
         ]}
       >
         <Ionicons
-          name='send'
-          size={16}
-          color={hasText ? '#FFF' : colors.iconColor}
+          name={hasText ? 'send' : 'mic'}
+          size={18}
+          color='#FFF'
+          style={hasText ? styles.sendIcon : undefined}
         />
       </Pressable>
     </View>
@@ -79,18 +118,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'flex-end',
     paddingHorizontal: 12,
-    paddingVertical: 12,
+    paddingTop: 8,
     borderTopWidth: 1,
-    gap: 10,
+    gap: 8,
+  },
+  emojiButton: {
+    width: 40,
+    height: 40,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 2,
   },
   inputWrapper: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-    minHeight: 42,
-    paddingHorizontal: 16,
-    borderRadius: 20,
+    gap: 4,
+    minHeight: 44,
+    paddingLeft: 16,
+    paddingRight: 8,
+    borderRadius: 24,
     borderWidth: 1,
   },
   input: {
@@ -98,13 +145,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     maxHeight: 100,
     paddingVertical: 10,
+    minWidth: 0,
   },
-  sendButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    borderWidth: 1,
+  pillIconButton: {
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  fabButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 0,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.35,
+    shadowRadius: 6,
+    elevation: 4,
+  },
+  sendIcon: {
+    marginLeft: 2,
   },
 });

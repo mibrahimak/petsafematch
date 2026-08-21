@@ -8,6 +8,7 @@ const ChatPetContextBanner = ({
   petName,
   myPetName,
   matchedPetName,
+  listingCity,
 }) => {
   const { colors } = useTheme();
 
@@ -21,11 +22,11 @@ const ChatPetContextBanner = ({
         styles.container,
         {
           backgroundColor: colors.primarySurface,
-          borderColor: colors.primary + '2E',
+          borderColor: colors.primary + '28',
         },
       ]}
     >
-      <Ionicons name='paw' size={14} color={colors.primary} />
+      <Ionicons name='paw' size={13} color={colors.primary} />
       <ThemedText style={[styles.text, { color: colors.text }]}>
         {isMatchContext ? (
           <>
@@ -47,6 +48,14 @@ const ChatPetContextBanner = ({
           </>
         )}
       </ThemedText>
+      {listingCity ? (
+        <View style={styles.locationRow}>
+          <Ionicons name='location-outline' size={11} color={colors.label} />
+          <ThemedText style={[styles.cityText, { color: colors.label }]}>
+            {listingCity}
+          </ThemedText>
+        </View>
+      ) : null}
     </View>
   );
 };
@@ -57,12 +66,12 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
     marginHorizontal: 16,
     marginTop: 12,
     marginBottom: 4,
     paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingVertical: 8,
     borderRadius: 12,
     borderWidth: 1,
   },
@@ -73,5 +82,14 @@ const styles = StyleSheet.create({
   },
   petName: {
     fontWeight: '700',
+  },
+  locationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    flexShrink: 0,
+  },
+  cityText: {
+    fontSize: 10,
   },
 });
